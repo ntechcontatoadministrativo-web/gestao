@@ -155,9 +155,11 @@ export function Presenca() {
   useEffect(() => {
     const pingar = () => {
       if (document.visibilityState === "visible") fetch("/api/presenca", { method: "POST" })
-          .then((r) => {
+          .then(async (r) => {
             // Usuário desativado pelo gestor: sai na hora.
             if (r.status === 401) window.location.href = "/login";
+            const j = await r.json().catch(() => null);
+            if (typeof j?.avisos === "number") window.dispatchEvent(new CustomEvent("ntech:avisos", { detail: j.avisos }));
           })
           .catch(() => {});
     };

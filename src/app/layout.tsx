@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: { default: "NTECH · Gestão de Projetos", template: "%s · NTECH Projetos" },
   description: "Projetos, etapas, equipe e arquivos em um só lugar.",
   icons: { icon: "/icon.svg" },
+  appleWebApp: { capable: true, title: "NTECH Projetos", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = { themeColor: "#0B0F0E", width: "device-width", initialScale: 1 };

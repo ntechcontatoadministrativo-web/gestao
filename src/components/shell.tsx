@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BarChart3, Bot, CheckSquare, Clock, FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, Sparkles, UserCog, Users, X, Files } from "lucide-react";
+import { BarChart3, Bot, CalendarDays, CheckSquare, Clock, FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, Sparkles, UserCog, Users, X, Files } from "lucide-react";
 import { Logo } from "./logo";
+import { Sininho } from "./avisos";
+import { BuscaGlobal } from "./busca";
 import { cn, iniciais } from "@/lib/utils";
 
 type Item = { href: string; rotulo: string; icone: React.ElementType };
@@ -13,6 +15,7 @@ const ITENS_GESTOR: Item[] = [
   { href: "/painel", rotulo: "Painel", icone: LayoutDashboard },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
   { href: "/tarefas", rotulo: "Tarefas", icone: CheckSquare },
+  { href: "/agenda", rotulo: "Agenda", icone: CalendarDays },
   { href: "/horas", rotulo: "Horas", icone: Clock },
   { href: "/relatorios", rotulo: "Relatórios", icone: BarChart3 },
   { href: "/assistente", rotulo: "Assistente IA", icone: Bot },
@@ -26,6 +29,7 @@ const ITENS_GESTOR: Item[] = [
 const ITENS_COLAB: Item[] = [
   { href: "/painel", rotulo: "Minhas etapas", icone: LayoutDashboard },
   { href: "/tarefas", rotulo: "Minhas tarefas", icone: CheckSquare },
+  { href: "/agenda", rotulo: "Agenda", icone: CalendarDays },
   { href: "/horas", rotulo: "Minhas horas", icone: Clock },
   { href: "/assistente", rotulo: "Assistente IA", icone: Bot },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
@@ -36,11 +40,13 @@ export function Shell({
   usuario,
   pendencias,
   tarefasAbertas,
+  avisos,
   children,
 }: {
   usuario: { nome: string; email: string; perfil: "GESTOR" | "COLABORADOR" };
   pendencias: number;
   tarefasAbertas: number;
+  avisos: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -50,8 +56,14 @@ export function Shell({
 
   const nav = (
     <nav className="flex h-full flex-col">
-      <div className="px-5 pb-6 pt-6">
+      <div className="flex items-center justify-between px-5 pb-6 pt-6">
         <Logo />
+        <span className="hidden lg:block">
+          <Sininho inicial={avisos} />
+        </span>
+      </div>
+      <div className="px-3 pb-3">
+        <BuscaGlobal />
       </div>
       <div className="flex-1 space-y-1 overflow-y-auto px-3">
         {itens.map((i) => {
@@ -104,6 +116,9 @@ export function Shell({
 
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-ink-700 bg-ink-900/90 px-4 py-3 backdrop-blur lg:hidden">
         <Logo subtitulo={false} />
+        <span className="ml-auto mr-1">
+          <Sininho inicial={avisos} alinhar="direita" />
+        </span>
         <button onClick={() => setAberto(true)} className="rounded-lg p-2 text-ink-200 hover:bg-ink-800" aria-label="Abrir menu">
           <Menu className="h-5 w-5" />
         </button>

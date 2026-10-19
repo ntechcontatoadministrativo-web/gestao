@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { db } from "../db";
+import { avisar } from "../avisos";
 
 export const MODELO_IA = "claude-opus-5-5";
 
@@ -188,6 +189,8 @@ export async function executarLevantamento(
         concluidoEm: new Date(),
       },
     });
+    const lev = await db.levantamento.findUnique({ where: { id }, select: { criadoPorId: true, titulo: true } });
+    await avisar([lev?.criadoPorId], { tipo: "projeto", titulo: `Levantamento pronto: ${lev?.titulo ?? ""}`, link: `/ia/${id}` });
   } catch (e) {
     let msg = e instanceof Error ? e.message : "Erro desconhecido.";
     if (e instanceof Anthropic.AuthenticationError) msg = "Chave da API da Anthropic inválida. Confira ANTHROPIC_API_KEY.";

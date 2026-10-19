@@ -10,6 +10,7 @@ import { modoArmazenamento, extensaoDe, mimeDe, removerConteudo } from "@/lib/st
 import * as google from "@/lib/storage/google";
 import { registrarLog } from "@/lib/log";
 import type { EstadoForm } from "@/components/client";
+import { avisar } from "@/lib/avisos";
 
 const texto = (fd: FormData, k: string) => {
   const v = String(fd.get(k) ?? "").trim();
@@ -64,6 +65,11 @@ export async function criarProjeto(_: EstadoForm, fd: FormData): Promise<EstadoF
     },
   });
 
+  await avisar(
+    etapas.map((e) => e.responsavelId),
+    { tipo: "projeto", titulo: `Você está no projeto ${projeto.codigo}`, texto: projeto.nome, link: `/projetos/${projeto.id}` },
+    gestor.id,
+  );
   revalidatePath("/projetos");
   redirect(`/projetos/${projeto.id}`);
 }

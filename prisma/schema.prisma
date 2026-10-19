@@ -77,6 +77,7 @@ model Usuario {
   levantamentos   Levantamento[]
   apontamentos    Apontamento[]
   notificacoes    Notificacao[]
+  avisos          Aviso[]
 }
 
 model Projeto {
@@ -356,4 +357,19 @@ model Notificacao {
   criadoEm   DateTime          @default(now())
 
   @@index([usuarioId, criadoEm])
+}
+
+// Avisos dentro do sistema (sininho): tarefa recebida, etapa aprovada, comentário novo etc.
+model Aviso {
+  id        String    @id @default(cuid())
+  usuarioId String
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo      String // tarefa | etapa | aprovacao | devolucao | comentario | arquivo | projeto
+  titulo    String
+  texto     String?
+  link      String?
+  lidoEm    DateTime?
+  criadoEm  DateTime  @default(now())
+
+  @@index([usuarioId, lidoEm, criadoEm])
 }

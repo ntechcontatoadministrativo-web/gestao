@@ -7,6 +7,8 @@ import { exigirGestor, exigirUsuario, urlBase } from "@/lib/auth";
 import { parseDataInput } from "@/lib/utils";
 import { mensagemTarefa } from "@/lib/whatsapp";
 import { enviarWhatsapp, whatsappApiAtiva } from "@/lib/whatsapp-api";
+import { avisar } from "@/lib/avisos";
+import { fmtData } from "@/lib/utils";
 import type { EstadoForm } from "@/components/client";
 
 const PRIORIDADES: Prioridade[] = ["BAIXA", "MEDIA", "ALTA", "URGENTE"];
@@ -65,6 +67,16 @@ export async function criarTarefa(_: EstadoForm, fd: FormData): Promise<EstadoFo
       etapa: { select: { nome: true } },
     },
   });
+  await avisar(
+    [t.responsavelId],
+    {
+      tipo: "tarefa",
+      titulo: `Nova tarefa: ${t.titulo}`,
+      texto: [t.projeto ? `${t.projeto.codigo} · ${t.projeto.nome}` : null, t.prazo ? `prazo ${fmtData(t.prazo)}` : null].filter(Boolean).join(" · ") || null,
+      link: `/tarefas?t=${t.id}#${t.id}`,
+    },
+    gestor.id,
+  );
   const mensagem = mensagemTarefa({ ...t, url: `${urlBase()}/tarefas?t=${t.id}` });
   // Envio automático pela API, se o gestor marcou a opção.
   let envio = "";
@@ -108,6 +120,9 @@ export async function alterarStatusTarefa(id: string, status: StatusTarefa) {
     where: { id },
     data: { status, concluidaEm: status === "FEITA" ? new Date() : null },
   });
+  if (status === "FEITA" && t.status !== "FEITA") {
+    await avisar([t.criadoPorId], { tipo: "tarefa", titulo: `${u.nome.split(" ")[0]} concluiu: ${t.titulo}`, link: `/tarefas?t=${t.id}#${t.id}` }, u.id);
+  }
   revalidar(t.projetoId);
 }
 

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { exigirGestor, exigirUsuario, type UsuarioSessao } from "@/lib/auth";
 import { parseDataInput } from "@/lib/utils";
 import type { EstadoForm } from "@/components/client";
+import { avisar, idsGestores } from "@/lib/avisos";
 
 const texto = (fd: FormData, k: string) => {
   const v = String(fd.get(k) ?? "").trim();
@@ -31,11 +32,11 @@ async function comentarioSistema(etapaId: string, autorId: string, texto: string
 }
 
 export async function criarEtapa(projetoId: string, _: EstadoForm, fd: FormData): Promise<EstadoForm> {
-  await exigirGestor();
+  const gestor = await exigirGestor();
   const nome = texto(fd, "nome");
   if (!nome) return { erro: "Informe o nome da etapa." };
   const ultima = await db.etapa.findFirst({ where: { projetoId }, orderBy: { ordem: "desc" } });
-  await db.etapa.create({
+  const nova = await db.etapa.create({
     data: {
       projetoId,
       nome,
@@ -44,7 +45,13 @@ export async function criarEtapa(projetoId: string, _: EstadoForm, fd: FormData)
       prazo: parseDataInput(fd.get("prazo")),
       ordem: (ultima?.ordem ?? 0) + 1,
     },
+    include: { projeto: { select: { codigo: true, nome: true } } },
   });
+  await avisar(
+    [nova.responsavelId],
+    { tipo: "etapa", titulo: `Etapa designada: ${nova.nome}`, texto: `${nova.projeto.codigo} · ${nova.projeto.nome}`, link: `/projetos/${projetoId}/etapas/${nova.id}` },
+    gestor.id,
+  );
   revalidar(projetoId);
   return { ok: "Etapa criada." };
 }
@@ -62,6 +69,7 @@ export async function editarEtapa(id: string, _: EstadoForm, fd: FormData): Prom
   });
   if (antes.responsavelId !== responsavelId) {
     await comentarioSistema(id, gestor.id, `designou a etapa para ${etapa.responsavel?.nome ?? "ninguém"}`);
+    await avisar([responsavelId], { tipo: "etapa", titulo: `Etapa designada: ${etapa.nome}`, link: `/projetos/${etapa.projetoId}/etapas/${id}` }, gestor.id);
   }
   revalidar(etapa.projetoId, id);
   return { ok: "Etapa atualizada." };
@@ -107,6 +115,12 @@ export async function enviarParaAprovacao(id: string) {
     data: { status: "AGUARDANDO_APROVACAO", enviadaEm: new Date(), iniciadaEm: etapa.iniciadaEm ?? new Date() },
   });
   await comentarioSistema(id, u.id, "enviou a etapa para aprovação do gestor");
+  await avisar(await idsGestores(), {
+    tipo: "aprovacao",
+    titulo: `Aprovação pendente: ${etapa.nome}`,
+    texto: `${u.nome} enviou a etapa para aprovação`,
+    link: `/projetos/${etapa.projetoId}/etapas/${id}`,
+  }, u.id);
   revalidar(etapa.projetoId, id);
 }
 
@@ -117,6 +131,7 @@ export async function aprovarEtapa(id: string) {
     data: { status: "CONCLUIDA", concluidaEm: new Date(), aprovadaPorId: g.id },
   });
   await comentarioSistema(id, g.id, "aprovou e concluiu a etapa");
+  await avisar([etapa.responsavelId], { tipo: "aprovacao", titulo: `Etapa aprovada: ${etapa.nome} ✅`, link: `/projetos/${etapa.projetoId}/etapas/${id}` }, g.id);
   revalidar(etapa.projetoId, id);
 }
 
@@ -130,6 +145,7 @@ export async function devolverEtapa(id: string, _: EstadoForm, fd: FormData): Pr
   });
   await comentarioSistema(id, g.id, "devolveu a etapa para ajustes");
   await db.comentario.create({ data: { etapaId: id, autorId: g.id, texto: motivo } });
+  await avisar([etapa.responsavelId], { tipo: "devolucao", titulo: `Etapa devolvida para ajustes: ${etapa.nome}`, texto: motivo, link: `/projetos/${etapa.projetoId}/etapas/${id}` }, g.id);
   revalidar(etapa.projetoId, id);
   return { ok: "Etapa devolvida ao responsável." };
 }
@@ -159,6 +175,13 @@ export async function comentar(etapaId: string, _: EstadoForm, fd: FormData): Pr
   try {
     const etapa = await etapaComAcesso(etapaId, u);
     await db.comentario.create({ data: { etapaId, autorId: u.id, texto: msg.slice(0, 4000) } });
+    // Gestor comenta -> avisa o responsável; responsável comenta -> avisa os gestores.
+    await avisar(u.perfil === "GESTOR" ? [etapa.responsavelId] : await idsGestores(), {
+      tipo: "comentario",
+      titulo: `${u.nome.split(" ")[0]} comentou em ${etapa.nome}`,
+      texto: msg,
+      link: `/projetos/${etapa.projetoId}/etapas/${etapaId}`,
+    }, u.id);
     revalidar(etapa.projetoId, etapaId);
     return { ok: "Comentário registrado." };
   } catch (e) {

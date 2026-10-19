@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { exigirGestor } from "@/lib/auth";
 import { registrarLog } from "@/lib/log";
 import { removerConteudo } from "@/lib/storage";
+import { avisar } from "@/lib/avisos";
 
 const NIVEIS: NivelAcesso[] = ["VISUALIZAR", "BAIXAR", "BLOQUEADO"];
 
@@ -39,6 +40,9 @@ export async function definirAcesso(arquivoId: string, usuarioId: string, fd: Fo
       arquivoId,
       detalhe: `${alvo.nome}: ${n === "BLOQUEADO" ? "bloqueado" : n === "BAIXAR" ? "visualizar e baixar" : "só visualizar"}`,
     });
+    if (n !== "BLOQUEADO") {
+      await avisar([usuarioId], { tipo: "arquivo", titulo: `Arquivo liberado: ${arquivo.nome}`, texto: n === "BAIXAR" ? "Pode visualizar e baixar" : "Só visualização", link: `/arquivos/${arquivoId}` }, gestor.id);
+    }
   }
   revalidar(arquivoId, arquivo.projetoId);
 }

@@ -19,7 +19,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <Shell usuario={usuario} pendencias={pendencias} tarefasAbertas={tarefasAbertas}>
+    <Shell
+      usuario={usuario}
+      pendencias={pendencias}
+      tarefasAbertas={tarefasAbertas}
+      avisos={await db.aviso.count({ where: { usuarioId: usuario.id, lidoEm: null } })}
+    >
       <Presenca />
       {children}
       <AssistenteFlutuante sugestoes={await sugestoesAssistente(usuario)} />
