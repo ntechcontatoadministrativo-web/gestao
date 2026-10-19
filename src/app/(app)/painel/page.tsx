@@ -263,7 +263,7 @@ async function PainelGestor({ u }: { u: UsuarioSessao }) {
 }
 
 async function PainelColaborador({ u }: { u: UsuarioSessao }) {
-  const [etapas, arquivos] = await Promise.all([
+  const [etapas, arquivos, tarefas] = await Promise.all([
     db.etapa.findMany({
       where: { responsavelId: u.id, projeto: { status: { in: ["ATIVO", "PAUSADO"] } } },
       include: { projeto: { select: { id: true, codigo: true, nome: true, status: true } }, _count: { select: { comentarios: true, arquivos: true } } },
@@ -273,6 +273,12 @@ async function PainelColaborador({ u }: { u: UsuarioSessao }) {
       where: filtroArquivosVisiveis(u.id),
       include: { projeto: { select: { codigo: true } } },
       orderBy: { atualizadoEm: "desc" },
+      take: 8,
+    }),
+    db.tarefa.findMany({
+      where: { responsavelId: u.id, status: { in: ["A_FAZER", "FAZENDO"] } },
+      include: { projeto: { select: { codigo: true } } },
+      orderBy: [{ prazo: { sort: "asc", nulls: "last" } }, { criadoEm: "desc" }],
       take: 8,
     }),
   ]);
@@ -337,6 +343,34 @@ async function PainelColaborador({ u }: { u: UsuarioSessao }) {
           )}
         </section>
 
+        <div className="space-y-6">
+        <section className="card">
+          <div className="flex items-center justify-between border-b border-ink-700 px-5 py-4">
+            <h2 className="font-semibold text-white">Minhas tarefas</h2>
+            <Link href="/tarefas" className="text-xs font-semibold text-ink-400 hover:text-neon">
+              Todas
+            </Link>
+          </div>
+          {tarefas.length === 0 ? (
+            <Vazio titulo="Nenhuma tarefa em aberto" />
+          ) : (
+            <ul className="divide-y divide-ink-800">
+              {tarefas.map((t) => (
+                <li key={t.id}>
+                  <Link href={`/tarefas?t=${t.id}#${t.id}`} className="flex items-center gap-3 px-5 py-3 text-sm hover:bg-ink-800/50">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-ink-100">{t.titulo}</span>
+                      <span className="text-xs text-ink-400">
+                        {t.projeto?.codigo ?? "Sem projeto"} · prazo {fmtData(t.prazo)}
+                      </span>
+                    </span>
+                    {t.prioridade === "URGENTE" ? <Badge tom="vermelho">Urgente</Badge> : <PrazoBadge prazo={t.prazo} />}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
         <section className="card">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-4">
             <h2 className="font-semibold text-white">Arquivos liberados</h2>
@@ -362,6 +396,7 @@ async function PainelColaborador({ u }: { u: UsuarioSessao }) {
             </ul>
           )}
         </section>
+        </div>
       </div>
       <p className="mt-6 text-center text-[11px] text-ink-500">Online = ativo nos últimos {ONLINE_JANELA_MS / 60000} minutos.</p>
     </>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
-import { ArrowDown, ArrowUp, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, Check, Copy, Download, KeyRound, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import type { ModeloEtapa } from "@prisma/client";
-import { alternarModelo, definirPastaRaiz, desconectarDrive, excluirModelo, moverModelo, salvarModelo } from "@/actions/config";
+import { alternarModelo, definirPastaRaiz, desconectarDrive, excluirModelo, gerarTokenDynamo, moverModelo, salvarModelo } from "@/actions/config";
 import { BotaoConfirmar, BotaoEnviar, Formulario, Modal } from "@/components/client";
 import { cn } from "@/lib/utils";
 
@@ -105,5 +105,53 @@ export function ListaModelos({ modelos }: { modelos: ModeloEtapa[] }) {
         {(fechar) => <FormModelo fechar={fechar} />}
       </Modal>
     </>
+  );
+}
+
+export function CartaoDynamo({ endpoint, temToken }: { endpoint: string; temToken: boolean }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState<string | null>(null);
+  const [pendente, iniciar] = useTransition();
+  const copiar = async (v: string, k: string) => {
+    await navigator.clipboard.writeText(v);
+    setCopiado(k);
+    setTimeout(() => setCopiado(null), 2000);
+  };
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="label">Endereço (URL) para o script</label>
+        <div className="flex gap-2">
+          <code className="input truncate font-mono text-xs">{endpoint}</code>
+          <button type="button" className="btn-secundario shrink-0 px-3" onClick={() => copiar(endpoint, "url")} aria-label="Copiar URL">
+            {copiado === "url" ? <Check className="h-4 w-4 text-neon" /> : <Copy className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+      {token ? (
+        <div className="rounded-xl border border-neon/30 bg-neon/[0.05] p-4">
+          <div className="mb-2 text-xs font-semibold text-neon">Token gerado. Copie agora: ele não será mostrado de novo.</div>
+          <div className="flex gap-2">
+            <code className="input truncate font-mono text-xs">{token}</code>
+            <button type="button" className="btn-secundario shrink-0 px-3" onClick={() => copiar(token, "tk")} aria-label="Copiar token">
+              {copiado === "tk" ? <Check className="h-4 w-4 text-neon" /> : <Copy className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="btn-secundario"
+          disabled={pendente}
+          onClick={() => iniciar(async () => setToken(await gerarTokenDynamo()))}
+        >
+          {pendente ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+          {temToken ? "Gerar novo token (o anterior para de funcionar)" : "Gerar token de acesso"}
+        </button>
+      )}
+      <a href="/dynamo/enviar_ntech.py" download className="btn-fantasma btn-sm">
+        <Download className="h-3.5 w-3.5" /> Baixar script Python para o Dynamo
+      </a>
+    </div>
   );
 }

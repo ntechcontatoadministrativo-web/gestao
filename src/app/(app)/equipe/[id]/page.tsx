@@ -7,6 +7,7 @@ import { etapaAtrasada, ROTULO_ACAO } from "@/lib/consultas";
 import { estaOnline, fmtData, fmtDataHora, fmtRevisao, tempoRelativo } from "@/lib/utils";
 import { Avatar, Badge, Cabecalho, Kpi, PrazoBadge, StatusEtapaBadge, Vazio } from "@/components/ui";
 import { BotaoAtivo, EditarUsuario } from "../cliente";
+import { formatarTelefone } from "@/lib/whatsapp";
 
 export default async function Pessoa({ params }: { params: { id: string } }) {
   const eu = await exigirGestor();
@@ -42,12 +43,13 @@ export default async function Pessoa({ params }: { params: { id: string } }) {
         descricao={
           <>
             {p.email}
-            {p.cargo && ` · ${p.cargo}`} · {p.ativo ? (estaOnline(p.ultimoAcesso) ? "online agora" : `último acesso ${tempoRelativo(p.ultimoAcesso)}`) : "desativado"}
+            {p.cargo && ` · ${p.cargo}`}
+            {p.telefone && ` · WhatsApp ${formatarTelefone(p.telefone)}`} · {p.ativo ? (estaOnline(p.ultimoAcesso) ? "online agora" : `último acesso ${tempoRelativo(p.ultimoAcesso)}`) : "desativado"}
           </>
         }
         acoes={
           <>
-            <EditarUsuario usuario={{ id: p.id, nome: p.nome, email: p.email, cargo: p.cargo, perfil: p.perfil }} />
+            <EditarUsuario usuario={{ id: p.id, nome: p.nome, email: p.email, cargo: p.cargo, telefone: p.telefone, perfil: p.perfil }} />
             {p.id !== eu.id && <BotaoAtivo id={p.id} ativo={p.ativo} />}
           </>
         }

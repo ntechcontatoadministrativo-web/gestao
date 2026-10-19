@@ -49,81 +49,89 @@ enum AcaoLog {
 }
 
 model Usuario {
-  id          String    @id @default(cuid())
-  nome        String
-  email       String    @unique
-  senhaHash   String
-  perfil      Perfil    @default(COLABORADOR)
-  cargo       String?
-  ativo       Boolean   @default(true)
+  id           String    @id @default(cuid())
+  nome         String
+  email        String    @unique
+  senhaHash    String
+  perfil       Perfil    @default(COLABORADOR)
+  cargo        String?
+  telefone     String? // WhatsApp, só dígitos com DDD (ex.: 91988887777)
+  ativo        Boolean   @default(true)
   ultimoAcesso DateTime?
   // Incrementado ao desativar/trocar senha: invalida sessões abertas na hora.
-  versaoSessao Int      @default(0)
-  criadoEm    DateTime  @default(now())
+  versaoSessao Int       @default(0)
+  criadoEm     DateTime  @default(now())
 
-  etapas         Etapa[]          @relation("Responsavel")
-  aprovacoes     Etapa[]          @relation("Aprovador")
-  comentarios    Comentario[]
+  etapas          Etapa[]         @relation("Responsavel")
+  aprovacoes      Etapa[]         @relation("Aprovador")
+  comentarios     Comentario[]
   versoesEnviadas ArquivoVersao[]
-  acessos        AcessoArquivo[]  @relation("AcessoUsuario")
-  acessosDados   AcessoArquivo[]  @relation("AcessoConcedidoPor")
-  logs           LogAcesso[]      @relation("LogUsuario")
+  acessos         AcessoArquivo[] @relation("AcessoUsuario")
+  acessosDados    AcessoArquivo[] @relation("AcessoConcedidoPor")
+  logs            LogAcesso[]     @relation("LogUsuario")
   projetosCriados Projeto[]
+  tarefas         Tarefa[]        @relation("TarefaResponsavel")
+  tarefasCriadas  Tarefa[]        @relation("TarefaCriador")
+  levantamentos   Levantamento[]
 }
 
 model Projeto {
-  id            String        @id @default(cuid())
-  codigo        String        @unique
-  nome          String
-  cliente       String?
-  endereco      String?
-  descricao     String?
-  status        StatusProjeto @default(ATIVO)
-  dataInicio    DateTime      @default(now())
-  prazoFinal    DateTime?
-  pastaDriveId  String?
-  criadoPorId   String?
-  criadoPor     Usuario?      @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
-  criadoEm      DateTime      @default(now())
-  atualizadoEm  DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  codigo       String        @unique
+  nome         String
+  cliente      String?
+  endereco     String?
+  descricao    String?
+  status       StatusProjeto @default(ATIVO)
+  dataInicio   DateTime      @default(now())
+  prazoFinal   DateTime?
+  pastaDriveId String?
+  criadoPorId  String?
+  criadoPor    Usuario?      @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
 
-  etapas   Etapa[]
-  arquivos Arquivo[]
+  etapas       Etapa[]
+  arquivos     Arquivo[]
+  tarefas      Tarefa[]
+  dadosModelo  DadosModelo[]
+  levantamento Levantamento?
 }
 
 model Etapa {
-  id             String      @id @default(cuid())
-  projetoId      String
-  projeto        Projeto     @relation(fields: [projetoId], references: [id], onDelete: Cascade)
-  nome           String
-  descricao      String?
-  ordem          Int
-  status         StatusEtapa @default(PENDENTE)
-  responsavelId  String?
-  responsavel    Usuario?    @relation("Responsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  prazo          DateTime?
-  iniciadaEm     DateTime?
-  enviadaEm      DateTime?
-  concluidaEm    DateTime?
-  aprovadaPorId  String?
-  aprovadaPor    Usuario?    @relation("Aprovador", fields: [aprovadaPorId], references: [id], onDelete: SetNull)
-  pastaDriveId   String?
-  criadoEm       DateTime    @default(now())
+  id            String      @id @default(cuid())
+  projetoId     String
+  projeto       Projeto     @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  nome          String
+  descricao     String?
+  ordem         Int
+  status        StatusEtapa @default(PENDENTE)
+  responsavelId String?
+  responsavel   Usuario?    @relation("Responsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  prazo         DateTime?
+  iniciadaEm    DateTime?
+  enviadaEm     DateTime?
+  concluidaEm   DateTime?
+  aprovadaPorId String?
+  aprovadaPor   Usuario?    @relation("Aprovador", fields: [aprovadaPorId], references: [id], onDelete: SetNull)
+  pastaDriveId  String?
+  criadoEm      DateTime    @default(now())
 
   comentarios Comentario[]
   arquivos    Arquivo[]
+  tarefas     Tarefa[]
 
   @@index([projetoId, ordem])
   @@index([responsavelId])
 }
 
 model ModeloEtapa {
-  id        String  @id @default(cuid())
-  nome      String
-  descricao String?
-  ordem     Int
-  diasPadrao Int    @default(7)
-  ativo     Boolean @default(true)
+  id         String  @id @default(cuid())
+  nome       String
+  descricao  String?
+  ordem      Int
+  diasPadrao Int     @default(7)
+  ativo      Boolean @default(true)
 }
 
 model Comentario {
@@ -141,18 +149,18 @@ model Comentario {
 }
 
 model Arquivo {
-  id            String   @id @default(cuid())
-  projetoId     String
-  projeto       Projeto  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
-  etapaId       String?
-  etapa         Etapa?   @relation(fields: [etapaId], references: [id], onDelete: SetNull)
-  nome          String
-  extensao      String?
-  revisaoAtual  Int      @default(0)
+  id           String       @id @default(cuid())
+  projetoId    String
+  projeto      Projeto      @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  etapaId      String?
+  etapa        Etapa?       @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  nome         String
+  extensao     String?
+  revisaoAtual Int          @default(0)
   // Liberação padrão para quem é responsável por alguma etapa do projeto.
-  acessoEquipe  NivelAcesso?
-  criadoEm      DateTime @default(now())
-  atualizadoEm  DateTime @updatedAt
+  acessoEquipe NivelAcesso?
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
 
   versoes ArquivoVersao[]
   acessos AcessoArquivo[]
@@ -162,19 +170,19 @@ model Arquivo {
 }
 
 model ArquivoVersao {
-  id           String   @id @default(cuid())
-  arquivoId    String
-  arquivo      Arquivo  @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
-  revisao      Int
-  driveFileId  String
-  armazenamento String  @default("drive")
-  nomeOriginal String
-  mimeType     String
-  tamanho      Int
-  observacao   String?
-  enviadoPorId String?
-  enviadoPor   Usuario? @relation(fields: [enviadoPorId], references: [id], onDelete: SetNull)
-  criadoEm     DateTime @default(now())
+  id            String   @id @default(cuid())
+  arquivoId     String
+  arquivo       Arquivo  @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+  revisao       Int
+  driveFileId   String
+  armazenamento String   @default("drive")
+  nomeOriginal  String
+  mimeType      String
+  tamanho       Int
+  observacao    String?
+  enviadoPorId  String?
+  enviadoPor    Usuario? @relation(fields: [enviadoPorId], references: [id], onDelete: SetNull)
+  criadoEm      DateTime @default(now())
 
   logs LogAcesso[]
 
@@ -182,15 +190,15 @@ model ArquivoVersao {
 }
 
 model AcessoArquivo {
-  id            String      @id @default(cuid())
-  arquivoId     String
-  arquivo       Arquivo     @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
-  usuarioId     String
-  usuario       Usuario     @relation("AcessoUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
-  nivel         NivelAcesso
+  id             String      @id @default(cuid())
+  arquivoId      String
+  arquivo        Arquivo     @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+  usuarioId      String
+  usuario        Usuario     @relation("AcessoUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  nivel          NivelAcesso
   concedidoPorId String?
-  concedidoPor  Usuario?    @relation("AcessoConcedidoPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
-  atualizadoEm  DateTime    @updatedAt
+  concedidoPor   Usuario?    @relation("AcessoConcedidoPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+  atualizadoEm   DateTime    @updatedAt
 
   @@unique([arquivoId, usuarioId])
 }
@@ -219,4 +227,83 @@ model Config {
   chave        String   @id
   valor        String
   atualizadoEm DateTime @updatedAt
+}
+
+enum StatusTarefa {
+  A_FAZER
+  FAZENDO
+  FEITA
+  CANCELADA
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+// Tarefa avulsa que o gestor designa a um funcionário (pode estar ligada a um projeto/etapa).
+model Tarefa {
+  id            String       @id @default(cuid())
+  titulo        String
+  descricao     String?
+  status        StatusTarefa @default(A_FAZER)
+  prioridade    Prioridade   @default(MEDIA)
+  prazo         DateTime?
+  responsavelId String
+  responsavel   Usuario      @relation("TarefaResponsavel", fields: [responsavelId], references: [id], onDelete: Cascade)
+  criadoPorId   String?
+  criadoPor     Usuario?     @relation("TarefaCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  projetoId     String?
+  projeto       Projeto?     @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  etapaId       String?
+  etapa         Etapa?       @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  concluidaEm   DateTime?
+  avisadoEm     DateTime? // última vez que o gestor abriu a mensagem de WhatsApp
+  criadoEm      DateTime     @default(now())
+  atualizadoEm  DateTime     @updatedAt
+
+  @@index([responsavelId, status])
+  @@index([projetoId])
+}
+
+enum StatusLevantamento {
+  PROCESSANDO
+  CONCLUIDO
+  ERRO
+}
+
+// Levantamento feito pelo agente de IA a partir dos documentos do cliente.
+model Levantamento {
+  id            String             @id @default(cuid())
+  titulo        String
+  cliente       String?
+  observacoes   String?
+  documentos    Json // [{ nome, tipo, tamanho }]
+  status        StatusLevantamento @default(PROCESSANDO)
+  resultado     Json?
+  erro          String?
+  modelo        String?
+  tokensEntrada Int?
+  tokensSaida   Int?
+  projetoId     String?            @unique
+  projeto       Projeto?           @relation(fields: [projetoId], references: [id], onDelete: SetNull)
+  criadoPorId   String?
+  criadoPor     Usuario?           @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoEm      DateTime           @default(now())
+  concluidoEm   DateTime?
+}
+
+// Dados enviados do modelo Revit pelo script do Dynamo (quadro de cargas, circuitos, quantitativos).
+model DadosModelo {
+  id         String   @id @default(cuid())
+  projetoId  String
+  projeto    Projeto  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  origem     String   @default("dynamo")
+  arquivoRvt String?
+  payload    Json
+  recebidoEm DateTime @default(now())
+
+  @@index([projetoId, recebidoEm])
 }

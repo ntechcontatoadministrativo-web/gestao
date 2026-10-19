@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CircleDot } from "lucide-react";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuario, urlBase } from "@/lib/auth";
+import { opcoesTarefa } from "@/lib/consultas";
+import { mensagemEtapa } from "@/lib/whatsapp";
+import { BotaoWhatsapp } from "@/components/whatsapp";
+import { NovaTarefa } from "@/app/(app)/tarefas/cliente";
 import { db } from "@/lib/db";
 import { nivelCalculado } from "@/lib/permissoes";
 import { fmtData, fmtDataHora, tempoRelativo } from "@/lib/utils";
@@ -16,8 +20,9 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
   const etapa = await db.etapa.findUnique({
     where: { id: params.etapaId },
     include: {
-      projeto: { select: { id: true, codigo: true, nome: true } },
-      responsavel: { select: { id: true, nome: true, cargo: true, ultimoAcesso: true } },
+      projeto: { select: { id: true, codigo: true, nome: true, cliente: true } },
+      responsavel: { select: { id: true, nome: true, cargo: true, telefone: true, ultimoAcesso: true } },
+      tarefas: { where: { status: { in: ["A_FAZER", "FAZENDO"] } }, include: { responsavel: { select: { nome: true } } }, orderBy: { prazo: "asc" } },
       aprovadaPor: { select: { nome: true } },
       comentarios: { include: { autor: { select: { nome: true } } }, orderBy: { criadoEm: "asc" } },
       arquivos: {
@@ -35,6 +40,7 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
   const responsavel = etapa.responsavelId === u.id;
   if (!gestor && !responsavel) notFound();
 
+  const opcoes = gestor ? await opcoesTarefa() : null;
   const minhas = new Set(responsavel ? [etapa.id] : []);
   const arquivos = etapa.arquivos
     .map((a) => ({ ...a, tamanho: a.versoes[0]?.tamanho ?? 0, nivel: nivelCalculado(u, a, minhas, responsavel) }))
@@ -59,6 +65,19 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
           <>
             {responsavel && <BotoesFluxo etapaId={etapa.id} status={etapa.status} />}
             {gestor && etapa.status === "AGUARDANDO_APROVACAO" && <BotoesAprovacao etapaId={etapa.id} />}
+            {gestor && etapa.responsavel && (
+              <BotaoWhatsapp
+                className="btn-sm"
+                rotulo="Avisar no WhatsApp"
+                nome={etapa.responsavel.nome}
+                telefone={etapa.responsavel.telefone}
+                mensagem={mensagemEtapa({
+                  ...etapa,
+                  responsavel: etapa.responsavel,
+                  url: `${urlBase()}/projetos/${etapa.projeto.id}/etapas/${etapa.id}`,
+                })}
+              />
+            )}
             {gestor && <StatusManual etapaId={etapa.id} status={etapa.status} />}
           </>
         }
@@ -150,6 +169,39 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
                 valor={etapa.concluidaEm ? `${fmtDataHora(etapa.concluidaEm)}${etapa.aprovadaPor ? ` · aprovada por ${etapa.aprovadaPor.nome}` : ""}` : "—"}
               />
             </dl>
+          </section>
+          <section className="card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-ink-400">Tarefas em aberto</h2>
+              <Link href="/tarefas" className="text-xs text-ink-400 hover:text-neon">
+                Todas
+              </Link>
+            </div>
+            {etapa.tarefas.filter((t) => gestor || t.responsavelId === u.id).length === 0 ? (
+              <p className="text-sm text-ink-500">Nenhuma tarefa aberta nesta etapa.</p>
+            ) : (
+              <ul className="space-y-2">
+                {etapa.tarefas.filter((t) => gestor || t.responsavelId === u.id).map((t) => (
+                  <li key={t.id}>
+                    <Link href={`/tarefas?t=${t.id}#${t.id}`} className="block rounded-lg border border-ink-700 px-3 py-2 text-sm hover:border-ink-500">
+                      <span className="block font-medium text-ink-100">{t.titulo}</span>
+                      <span className="text-xs text-ink-400">
+                        {t.responsavel.nome} · prazo {fmtData(t.prazo)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {gestor && opcoes && (
+              <div className="mt-3">
+                <NovaTarefa
+                  opcoes={opcoes}
+                  rotulo="Tarefa nesta etapa"
+                  padrao={{ projetoId: etapa.projeto.id, etapaId: etapa.id, responsavelId: etapa.responsavelId ?? undefined }}
+                />
+              </div>
+            )}
           </section>
           {responsavel && etapa.status === "EM_ANDAMENTO" && (
             <div className="rounded-xl border border-ink-700 bg-ink-900 p-4 text-xs text-ink-400">

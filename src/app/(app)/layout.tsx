@@ -12,8 +12,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? await db.etapa.count({ where: { status: "AGUARDANDO_APROVACAO" } })
       : await db.etapa.count({ where: { responsavelId: usuario.id, status: { in: ["PENDENTE", "EM_ANDAMENTO"] } } });
 
+  const tarefasAbertas = await db.tarefa.count({
+    where: { status: { in: ["A_FAZER", "FAZENDO"] }, ...(usuario.perfil === "GESTOR" ? {} : { responsavelId: usuario.id }) },
+  });
+
   return (
-    <Shell usuario={usuario} pendencias={pendencias}>
+    <Shell usuario={usuario} pendencias={pendencias} tarefasAbertas={tarefasAbertas}>
       <Presenca />
       {children}
     </Shell>

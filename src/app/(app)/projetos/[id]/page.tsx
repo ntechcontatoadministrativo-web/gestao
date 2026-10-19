@@ -11,6 +11,7 @@ import { Avatar, Cabecalho, PrazoBadge, Progresso, StatusEtapaBadge, StatusProje
 import { TabelaArquivos } from "@/components/tabela-arquivos";
 import { EnviarArquivo } from "@/components/upload";
 import { AcoesEtapa, AcoesProjeto, CartaoDrive, NovaEtapa } from "./acoes";
+import { DadosModelo } from "@/components/dados-modelo";
 
 export default async function ProjetoPage({ params }: { params: { id: string } }) {
   const u = await exigirUsuario();
@@ -39,9 +40,11 @@ export default async function ProjetoPage({ params }: { params: { id: string } }
   });
   if (!projeto) notFound();
 
-  const [pessoas, modo] = await Promise.all([
+  const [pessoas, modo, ultimoModelo, envios] = await Promise.all([
     gestor ? db.usuario.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: "asc" } }) : Promise.resolve([]),
     modoArmazenamento(),
+    db.dadosModelo.findFirst({ where: { projetoId: params.id }, orderBy: { recebidoEm: "desc" } }),
+    db.dadosModelo.count({ where: { projetoId: params.id } }),
   ]);
 
   const minhasEtapas = new Set(projeto.etapas.filter((e) => e.responsavelId === u.id).map((e) => e.id));
@@ -231,6 +234,8 @@ export default async function ProjetoPage({ params }: { params: { id: string } }
           <TabelaArquivos arquivos={arquivos} mostrarNivel={!gestor} />
         )}
       </section>
+
+      {ultimoModelo && <DadosModelo registro={ultimoModelo} envios={envios} />}
     </>
   );
 }

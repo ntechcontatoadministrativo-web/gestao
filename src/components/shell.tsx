@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, UserCog, Users, X, Files } from "lucide-react";
+import { CheckSquare, FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, Sparkles, UserCog, Users, X, Files } from "lucide-react";
 import { Logo } from "./logo";
 import { cn, iniciais } from "@/lib/utils";
 
@@ -12,6 +12,8 @@ type Item = { href: string; rotulo: string; icone: React.ElementType };
 const ITENS_GESTOR: Item[] = [
   { href: "/painel", rotulo: "Painel", icone: LayoutDashboard },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
+  { href: "/tarefas", rotulo: "Tarefas", icone: CheckSquare },
+  { href: "/ia", rotulo: "Levantamento IA", icone: Sparkles },
   { href: "/arquivos", rotulo: "Arquivos", icone: Files },
   { href: "/equipe", rotulo: "Equipe", icone: Users },
   { href: "/auditoria", rotulo: "Auditoria", icone: ShieldCheck },
@@ -20,6 +22,7 @@ const ITENS_GESTOR: Item[] = [
 
 const ITENS_COLAB: Item[] = [
   { href: "/painel", rotulo: "Minhas etapas", icone: LayoutDashboard },
+  { href: "/tarefas", rotulo: "Minhas tarefas", icone: CheckSquare },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
   { href: "/arquivos", rotulo: "Arquivos", icone: Files },
 ];
@@ -27,10 +30,12 @@ const ITENS_COLAB: Item[] = [
 export function Shell({
   usuario,
   pendencias,
+  tarefasAbertas,
   children,
 }: {
   usuario: { nome: string; email: string; perfil: "GESTOR" | "COLABORADOR" };
   pendencias: number;
+  tarefasAbertas: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -60,6 +65,9 @@ export function Shell({
               <span className="flex-1">{i.rotulo}</span>
               {i.href === "/painel" && pendencias > 0 && (
                 <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">{pendencias}</span>
+              )}
+              {i.href === "/tarefas" && tarefasAbertas > 0 && (
+                <span className="rounded-full bg-sky-400/20 px-2 py-0.5 text-[10px] font-bold text-sky-300">{tarefasAbertas}</span>
               )}
             </Link>
           );

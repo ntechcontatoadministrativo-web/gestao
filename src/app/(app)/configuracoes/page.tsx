@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import * as google from "@/lib/storage/google";
 import { appUrl } from "@/lib/utils";
 import { Aviso, Badge, Cabecalho } from "@/components/ui";
-import { BotaoDesconectar, FormPastaRaiz, ListaModelos } from "./cliente";
+import { BotaoDesconectar, CartaoDynamo, FormPastaRaiz, ListaModelos } from "./cliente";
+import { urlBase } from "@/lib/auth";
+import { CFG_DYNAMO } from "@/lib/integracoes";
 
 export const metadata = { title: "Configurações" };
 
@@ -18,11 +20,12 @@ const MENSAGENS: Record<string, { tom: "ok" | "erro" | "alerta"; texto: string }
 
 export default async function Configuracoes({ searchParams }: { searchParams: { google?: string } }) {
   await exigirGestor();
-  const [modelos, conectado, conta, raiz] = await Promise.all([
+  const [modelos, conectado, conta, raiz, tokenDynamo] = await Promise.all([
     db.modeloEtapa.findMany({ orderBy: { ordem: "asc" } }),
     google.driveConectado(),
     google.lerConfig(google.CFG_CONTA),
     google.lerConfig(google.CFG_PASTA_RAIZ),
+    google.lerConfig(CFG_DYNAMO),
   ]);
   const msg = searchParams.google ? MENSAGENS[searchParams.google] : null;
   const url = appUrl();
@@ -106,6 +109,15 @@ export default async function Configuracoes({ searchParams }: { searchParams: { 
           <h2 className="font-semibold text-white">Modelos de etapas padrão</h2>
           <p className="mb-4 mt-1 text-xs text-ink-400">Usados ao criar um projeto. Os dias definem os prazos sugeridos em sequência.</p>
           <ListaModelos modelos={modelos} />
+        </section>
+
+        <section className="card p-6 xl:col-span-2">
+          <h2 className="font-semibold text-white">Integração com Dynamo (Revit)</h2>
+          <p className="mb-4 mt-1 max-w-3xl text-xs text-ink-400">
+            O script lê do modelo Revit os quadros, circuitos (carga, fases, disjuntor, cabo) e quantitativos (eletrodutos, eletrocalhas, luminárias,
+            tomadas) e envia direto para o projeto no sistema, pelo código do projeto. Os dados aparecem na tela do projeto.
+          </p>
+          <CartaoDynamo endpoint={`${urlBase()}/api/integracoes/dynamo`} temToken={!!tokenDynamo} />
         </section>
       </div>
     </>

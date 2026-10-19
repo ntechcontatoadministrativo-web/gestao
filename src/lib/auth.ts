@@ -57,3 +57,13 @@ export function infoRequisicao() {
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
   return { ip, userAgent: h.get("user-agent")?.slice(0, 300) ?? null };
 }
+
+// URL pública para links em mensagens (APP_URL/Render; senão, o host da requisição).
+export function urlBase() {
+  const fixa = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+  if (fixa) return fixa;
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}

@@ -1,7 +1,7 @@
 # NTECH · Gestão de Projetos
 
 Sistema web para organizar projetos elétricos, equipe e arquivos do Google Drive, com controle de acesso.
-Implementa a **Fase 1 (MVP)** da proposta comercial.
+Implementa a **Fase 1 (MVP)** e a **Fase 2 (IA e Dynamo)** da proposta comercial, além das tarefas com aviso por WhatsApp.
 
 | Módulo | O que tem |
 | --- | --- |
@@ -10,6 +10,10 @@ Implementa a **Fase 1 (MVP)** da proposta comercial.
 | **Acompanhamento** | Painel do gestor (progresso por projeto e por funcionário, alertas de atraso, aprovações pendentes, acessos recentes), comentários e histórico por etapa, fluxo *Pendente → Em andamento → Aguardando aprovação → Concluída* com aprovação ou devolução pelo gestor |
 | **Arquivos (Google Drive)** | Pasta do Drive por projeto e por etapa (criadas automaticamente ou vinculadas a pastas existentes, com importação), upload direto para o Drive sem limite de tamanho, download pelo sistema, visualização de PDFs e imagens no navegador com marca d'água, revisões R00, R01… |
 | **Controle de acesso** | Liberar (só visualizar / visualizar e baixar) ou bloquear por pessoa, regra padrão por equipe, bloqueio geral, registro de quem abriu, baixou ou teve o acesso negado, indicador de online, tela de auditoria com filtros e exportação em CSV |
+
+| **Tarefas + WhatsApp** | O gestor designa tarefas avulsas (com prioridade, prazo, projeto/etapa) e gera a mensagem pronta para o WhatsApp do funcionário (link `wa.me`, texto editável). Também há aviso de etapa designada. O funcionário acompanha e conclui as tarefas dele. |
+| **Levantamento com IA** (Fase 2) | O gestor envia memorial, plantas (PDF) e fotos; o Claude (`claude-opus-5-5`) lê tudo e devolve resumo, dados técnicos identificados, escopo, entregáveis, etapas com prazos calibrados pelo histórico real do escritório, riscos, perguntas para o cliente e documentos faltantes. Um clique cria o projeto com as etapas. |
+| **Integração com Dynamo** (Fase 2) | Script Python (`public/dynamo/enviar_ntech.py`) que lê do Revit os quadros, circuitos e quantitativos e envia para o projeto. O sistema mostra o quadro de cargas, a potência por fase e o desequilíbrio. |
 
 ## Como o controle de acesso funciona
 
@@ -51,6 +55,19 @@ Sem o Google configurado, os arquivos ficam na pasta `storage/` do servidor (mod
 O sistema cria a pasta `NTECH · Gestão de Projetos` (ou usa uma pasta que você indicar) e, dentro dela, uma pasta por projeto e uma por etapa.
 O token do Google fica criptografado no banco (AES-256-GCM com `ENCRYPTION_KEY`).
 
+## Ativar a IA
+
+1. Crie uma chave em [console.anthropic.com](https://console.anthropic.com) (API keys).
+2. Adicione `ANTHROPIC_API_KEY` nas variáveis do servidor (Render → Environment) e faça o deploy de novo.
+
+A análise usa structured outputs (o JSON sempre segue o schema) e o *fallback* do servidor (`fallbacks: "default"`), que tenta outro modelo se a resposta for recusada.
+O custo é por uso e depende do volume de documentos. Limite por envio: 22 MB e 20 arquivos; DWG/RVT precisam ser exportados para PDF.
+
+## Dynamo
+
+Em **Configurações → Integração com Dynamo**, gere o token e baixe o script. No Dynamo (Revit 2022+, CPython3), cole o script num nó
+*Python Script* com 4 entradas: URL, token, código do projeto e `Enviar` (False mostra só a prévia).
+
 ## Deploy (Render + Neon)
 
 - **Build:** `npm install && npm run build && npx prisma db push`
@@ -71,7 +88,6 @@ src/app/api/arquivos/       upload em 2 etapas e entrega de conteúdo com audito
 src/app/(app)/              telas: painel, projetos, etapas, arquivos, equipe, auditoria, configurações
 ```
 
-## Próximas fases (proposta)
+## Próxima fase (proposta)
 
-- **Fase 2:** agente de IA de levantamento (lê memoriais, plantas e fotos e sugere escopo, etapas e prazos) e integração com o Dynamo.
 - **Fase 3:** relatórios de produtividade, apontamento de horas, notificações por WhatsApp e área do cliente final.

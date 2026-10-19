@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { exigirGestor } from "@/lib/auth";
 import * as google from "@/lib/storage/google";
+import { CFG_DYNAMO } from "@/lib/integracoes";
 import type { EstadoForm } from "@/components/client";
 
 export async function salvarModelo(id: string | null, _: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -68,4 +69,15 @@ export async function definirPastaRaiz(_: EstadoForm, fd: FormData): Promise<Est
   } catch (e) {
     return { erro: e instanceof Error ? e.message : "Não foi possível acessar essa pasta." };
   }
+}
+
+// Gera um novo token para o script do Dynamo. Ele só é mostrado uma vez.
+export async function gerarTokenDynamo(): Promise<string> {
+  await exigirGestor();
+  const { randomBytes, createHash } = await import("crypto");
+  const token = `ntk_${randomBytes(24).toString("base64url")}`;
+  const hash = createHash("sha256").update(token).digest("hex");
+  await db.config.upsert({ where: { chave: CFG_DYNAMO }, update: { valor: hash }, create: { chave: CFG_DYNAMO, valor: hash } });
+  revalidatePath("/configuracoes");
+  return token;
 }

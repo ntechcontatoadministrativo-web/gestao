@@ -1,6 +1,7 @@
 import "server-only";
 import type { AcaoLog, Etapa, Prisma } from "@prisma/client";
 import { hojeInicio, parseDataInput } from "./utils";
+import { db } from "./db";
 
 export function progresso(etapas: Pick<Etapa, "status">[]) {
   if (!etapas.length) return 0;
@@ -47,5 +48,19 @@ export function filtroAuditoria(sp: Record<string, string | undefined>): Prisma.
         }
       : {}),
   };
+}
+
+
+// Pessoas e projetos/etapas para os formulários de tarefa.
+export async function opcoesTarefa(): Promise<{ pessoas: { id: string; nome: string }[]; projetos: { id: string; codigo: string; nome: string; etapas: { id: string; nome: string; ordem: number }[] }[] }> {
+  const [pessoas, projetos] = await Promise.all([
+    db.usuario.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: "asc" } }),
+    db.projeto.findMany({
+      where: { status: { in: ["ATIVO", "PAUSADO"] } },
+      select: { id: true, codigo: true, nome: true, etapas: { select: { id: true, nome: true, ordem: true }, orderBy: { ordem: "asc" } } },
+      orderBy: { codigo: "desc" },
+    }),
+  ]);
+  return { pessoas, projetos };
 }
 

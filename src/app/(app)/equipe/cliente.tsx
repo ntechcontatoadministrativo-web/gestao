@@ -5,7 +5,7 @@ import { Loader2, Pencil, UserPlus } from "lucide-react";
 import { alternarAtivo, criarUsuario, editarUsuario } from "@/actions/equipe";
 import { BotaoEnviar, Formulario, Modal } from "@/components/client";
 
-type Dados = { id: string; nome: string; email: string; cargo: string | null; perfil: "GESTOR" | "COLABORADOR" };
+type Dados = { id: string; nome: string; email: string; cargo: string | null; telefone: string | null; perfil: "GESTOR" | "COLABORADOR" };
 
 function gerarSenha() {
   const c = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -30,6 +30,11 @@ function Campos({ usuario, novo }: { usuario?: Dados; novo?: boolean }) {
           <label className="label">Cargo</label>
           <input name="cargo" defaultValue={usuario?.cargo ?? ""} className="input" placeholder="Ex.: Projetista elétrico" />
         </div>
+      </div>
+      <div>
+        <label className="label">WhatsApp</label>
+        <input name="telefone" type="tel" defaultValue={usuario?.telefone ?? ""} className="input" placeholder="(91) 98888-7777" />
+        <p className="mt-1 text-xs text-ink-500">Usado para gerar as mensagens de tarefas e etapas.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

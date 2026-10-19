@@ -5,6 +5,7 @@ import { etapaAtrasada } from "@/lib/consultas";
 import { cn, estaOnline, tempoRelativo } from "@/lib/utils";
 import { Avatar, Badge, Cabecalho } from "@/components/ui";
 import { BotaoAtivo, FormUsuario } from "./cliente";
+import { formatarTelefone } from "@/lib/whatsapp";
 
 export const metadata = { title: "Equipe" };
 
@@ -52,6 +53,7 @@ export default async function Equipe() {
                           <span className="block truncate text-xs text-ink-400">
                             {x.email}
                             {x.cargo && ` · ${x.cargo}`}
+                            {x.telefone && ` · ${formatarTelefone(x.telefone)}`}
                           </span>
                         </span>
                       </Link>

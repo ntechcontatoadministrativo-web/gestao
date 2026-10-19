@@ -6,12 +6,19 @@ import type { Perfil } from "@prisma/client";
 import { db } from "@/lib/db";
 import { exigirGestor, exigirUsuario, iniciarSessao } from "@/lib/auth";
 import type { EstadoForm } from "@/components/client";
+import { normalizarTelefone } from "@/lib/whatsapp";
 
 const texto = (fd: FormData, k: string) => {
   const v = String(fd.get(k) ?? "").trim();
   return v || null;
 };
 const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+function telefoneDe(fd: FormData): { ok: string | null } | { erro: string } {
+  const bruto = String(fd.get("telefone") ?? "").trim();
+  if (!bruto) return { ok: null };
+  const n = normalizarTelefone(bruto);
+  return n ? { ok: n } : { erro: "WhatsApp inválido. Use DDD + número, ex.: (91) 98888-7777." };
+}
 const perfilDe = (fd: FormData): Perfil => (fd.get("perfil") === "GESTOR" ? "GESTOR" : "COLABORADOR");
 
 export async function criarUsuario(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -23,9 +30,11 @@ export async function criarUsuario(_: EstadoForm, fd: FormData): Promise<EstadoF
   if (!emailValido(email)) return { erro: "E-mail inválido." };
   if (senha.length < 8) return { erro: "A senha inicial precisa ter ao menos 8 caracteres." };
   if (await db.usuario.findUnique({ where: { email } })) return { erro: "Já existe um usuário com esse e-mail." };
+  const tel = telefoneDe(fd);
+  if ("erro" in tel) return tel;
 
   await db.usuario.create({
-    data: { nome, email, cargo: texto(fd, "cargo"), perfil: perfilDe(fd), senhaHash: await bcrypt.hash(senha, 10) },
+    data: { nome, email, telefone: tel.ok, cargo: texto(fd, "cargo"), perfil: perfilDe(fd), senhaHash: await bcrypt.hash(senha, 10) },
   });
   revalidatePath("/equipe");
   return { ok: `${nome} foi cadastrado(a).` };
@@ -43,6 +52,8 @@ export async function editarUsuario(id: string, _: EstadoForm, fd: FormData): Pr
 
   const senha = String(fd.get("senha") ?? "");
   if (senha && senha.length < 8) return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  const tel = telefoneDe(fd);
+  if ("erro" in tel) return tel;
 
   await db.usuario.update({
     where: { id },
@@ -50,6 +61,7 @@ export async function editarUsuario(id: string, _: EstadoForm, fd: FormData): Pr
       nome,
       email,
       cargo: texto(fd, "cargo"),
+      telefone: tel.ok,
       perfil,
       ...(senha ? { senhaHash: await bcrypt.hash(senha, 10), versaoSessao: { increment: 1 } } : {}),
     },

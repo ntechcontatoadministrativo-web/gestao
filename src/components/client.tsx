@@ -5,7 +5,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type EstadoForm = { erro?: string; ok?: string } | null;
+export type EstadoForm = { erro?: string; ok?: string; dados?: Record<string, string> } | null;
 type Acao = (estado: EstadoForm, fd: FormData) => Promise<EstadoForm>;
 
 export function BotaoEnviar({
@@ -34,7 +34,7 @@ export function Formulario({
   acao: Acao;
   children: React.ReactNode;
   className?: string;
-  aoConcluir?: () => void;
+  aoConcluir?: (estado: NonNullable<EstadoForm>) => void;
   resetar?: boolean;
 }) {
   const [estado, despachar] = useFormState(acao, null);
@@ -42,7 +42,7 @@ export function Formulario({
   useEffect(() => {
     if (estado?.ok) {
       if (resetar) ref.current?.reset();
-      aoConcluir?.();
+      aoConcluir?.(estado);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado]);
