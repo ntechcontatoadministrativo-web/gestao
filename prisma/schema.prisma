@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Perfil {
+  GESTOR
+  COLABORADOR
+}
+
+enum StatusProjeto {
+  ATIVO
+  PAUSADO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum StatusEtapa {
+  PENDENTE
+  EM_ANDAMENTO
+  AGUARDANDO_APROVACAO
+  CONCLUIDA
+}
+
+// Nível de acesso de uma pessoa a um arquivo. BLOQUEADO sempre vence.
+enum NivelAcesso {
+  VISUALIZAR
+  BAIXAR
+  BLOQUEADO
+}
+
+enum AcaoLog {
+  LOGIN
+  LOGIN_FALHOU
+  VISUALIZOU
+  BAIXOU
+  ENVIOU
+  NOVA_REVISAO
+  ACESSO_NEGADO
+  LIBEROU
+  BLOQUEOU
+  REMOVEU_ACESSO
+  EXCLUIU
+}
+
+model Usuario {
+  id          String    @id @default(cuid())
+  nome        String
+  email       String    @unique
+  senhaHash   String
+  perfil      Perfil    @default(COLABORADOR)
+  cargo       String?
+  ativo       Boolean   @default(true)
+  ultimoAcesso DateTime?
+  // Incrementado ao desativar/trocar senha: invalida sessões abertas na hora.
+  versaoSessao Int      @default(0)
+  criadoEm    DateTime  @default(now())
+
+  etapas         Etapa[]          @relation("Responsavel")
+  aprovacoes     Etapa[]          @relation("Aprovador")
+  comentarios    Comentario[]
+  versoesEnviadas ArquivoVersao[]
+  acessos        AcessoArquivo[]  @relation("AcessoUsuario")
+  acessosDados   AcessoArquivo[]  @relation("AcessoConcedidoPor")
+  logs           LogAcesso[]      @relation("LogUsuario")
+  projetosCriados Projeto[]
+}
+
+model Projeto {
+  id            String        @id @default(cuid())
+  codigo        String        @unique
+  nome          String
+  cliente       String?
+  endereco      String?
+  descricao     String?
+  status        StatusProjeto @default(ATIVO)
+  dataInicio    DateTime      @default(now())
+  prazoFinal    DateTime?
+  pastaDriveId  String?
+  criadoPorId   String?
+  criadoPor     Usuario?      @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoEm      DateTime      @default(now())
+  atualizadoEm  DateTime      @updatedAt
+
+  etapas   Etapa[]
+  arquivos Arquivo[]
+}
+
+model Etapa {
+  id             String      @id @default(cuid())
+  projetoId      String
+  projeto        Projeto     @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  nome           String
+  descricao      String?
+  ordem          Int
+  status         StatusEtapa @default(PENDENTE)
+  responsavelId  String?
+  responsavel    Usuario?    @relation("Responsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  prazo          DateTime?
+  iniciadaEm     DateTime?
+  enviadaEm      DateTime?
+  concluidaEm    DateTime?
+  aprovadaPorId  String?
+  aprovadaPor    Usuario?    @relation("Aprovador", fields: [aprovadaPorId], references: [id], onDelete: SetNull)
+  pastaDriveId   String?
+  criadoEm       DateTime    @default(now())
+
+  comentarios Comentario[]
+  arquivos    Arquivo[]
+
+  @@index([projetoId, ordem])
+  @@index([responsavelId])
+}
+
+model ModeloEtapa {
+  id        String  @id @default(cuid())
+  nome      String
+  descricao String?
+  ordem     Int
+  diasPadrao Int    @default(7)
+  ativo     Boolean @default(true)
+}
+
+model Comentario {
+  id       String   @id @default(cuid())
+  etapaId  String
+  etapa    Etapa    @relation(fields: [etapaId], references: [id], onDelete: Cascade)
+  autorId  String?
+  autor    Usuario? @relation(fields: [autorId], references: [id], onDelete: SetNull)
+  texto    String
+  // Comentários de sistema registram mudanças de status ("Fulano enviou para aprovação").
+  sistema  Boolean  @default(false)
+  criadoEm DateTime @default(now())
+
+  @@index([etapaId, criadoEm])
+}
+
+model Arquivo {
+  id            String   @id @default(cuid())
+  projetoId     String
+  projeto       Projeto  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  etapaId       String?
+  etapa         Etapa?   @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  nome          String
+  extensao      String?
+  revisaoAtual  Int      @default(0)
+  // Liberação padrão para quem é responsável por alguma etapa do projeto.
+  acessoEquipe  NivelAcesso?
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  versoes ArquivoVersao[]
+  acessos AcessoArquivo[]
+  logs    LogAcesso[]
+
+  @@index([projetoId, etapaId])
+}
+
+model ArquivoVersao {
+  id           String   @id @default(cuid())
+  arquivoId    String
+  arquivo      Arquivo  @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+  revisao      Int
+  driveFileId  String
+  armazenamento String  @default("drive")
+  nomeOriginal String
+  mimeType     String
+  tamanho      Int
+  observacao   String?
+  enviadoPorId String?
+  enviadoPor   Usuario? @relation(fields: [enviadoPorId], references: [id], onDelete: SetNull)
+  criadoEm     DateTime @default(now())
+
+  logs LogAcesso[]
+
+  @@unique([arquivoId, revisao])
+}
+
+model AcessoArquivo {
+  id            String      @id @default(cuid())
+  arquivoId     String
+  arquivo       Arquivo     @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+  usuarioId     String
+  usuario       Usuario     @relation("AcessoUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  nivel         NivelAcesso
+  concedidoPorId String?
+  concedidoPor  Usuario?    @relation("AcessoConcedidoPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+  atualizadoEm  DateTime    @updatedAt
+
+  @@unique([arquivoId, usuarioId])
+}
+
+model LogAcesso {
+  id        String         @id @default(cuid())
+  acao      AcaoLog
+  usuarioId String?
+  usuario   Usuario?       @relation("LogUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  arquivoId String?
+  arquivo   Arquivo?       @relation(fields: [arquivoId], references: [id], onDelete: SetNull)
+  versaoId  String?
+  versao    ArquivoVersao? @relation(fields: [versaoId], references: [id], onDelete: SetNull)
+  detalhe   String?
+  ip        String?
+  userAgent String?
+  criadoEm  DateTime       @default(now())
+
+  @@index([criadoEm])
+  @@index([arquivoId, criadoEm])
+  @@index([usuarioId, criadoEm])
+}
+
+// Chave/valor para configurações do sistema (tokens do Google criptografados etc.).
+model Config {
+  chave        String   @id
+  valor        String
+  atualizadoEm DateTime @updatedAt
+}
