@@ -1,11 +1,10 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 
+// Aceita 64 caracteres hex ou qualquer segredo longo (ex.: gerado pelo Render), derivado via SHA-256.
 function chave(): Buffer {
-  const hex = process.env.ENCRYPTION_KEY;
-  if (!hex || hex.length !== 64) {
-    throw new Error("ENCRYPTION_KEY ausente ou inválida (precisa de 64 caracteres hex).");
-  }
-  return Buffer.from(hex, "hex");
+  const v = process.env.ENCRYPTION_KEY;
+  if (!v || v.length < 32) throw new Error("ENCRYPTION_KEY ausente ou curta (mínimo 32 caracteres).");
+  return /^[0-9a-f]{64}$/i.test(v) ? Buffer.from(v, "hex") : createHash("sha256").update(v).digest();
 }
 
 // AES-256-GCM. Formato: iv.tag.dados (base64url)

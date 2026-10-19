@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { emitirTicket, type TicketUpload } from "@/lib/tickets";
 import { mimeDe, modoArmazenamento, pastaDestino } from "@/lib/storage";
 import { iniciarUploadResumivel } from "@/lib/storage/google";
+import { appUrl } from "@/lib/utils";
 
 const Corpo = z.object({
   projetoId: z.string().optional(),
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
     const token = await emitirTicket("upload", ticket, "12h");
 
     if (modo === "drive") {
-      const origin = req.headers.get("origin") ?? process.env.APP_URL ?? new URL(req.url).origin;
+      const origin = req.headers.get("origin") ?? (appUrl() || undefined) ?? new URL(req.url).origin;
       const uploadUrl = await iniciarUploadResumivel({ nome: b.nome, mime, tamanho: b.tamanho, pastaId: pastaId!, origin });
       return NextResponse.json({ modo, uploadUrl, token });
     }

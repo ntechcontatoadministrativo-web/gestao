@@ -2,6 +2,7 @@ import { CheckCircle2, ExternalLink, HardDrive } from "lucide-react";
 import { exigirGestor } from "@/lib/auth";
 import { db } from "@/lib/db";
 import * as google from "@/lib/storage/google";
+import { appUrl } from "@/lib/utils";
 import { Aviso, Badge, Cabecalho } from "@/components/ui";
 import { BotaoDesconectar, FormPastaRaiz, ListaModelos } from "./cliente";
 
@@ -24,7 +25,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: { 
     google.lerConfig(google.CFG_PASTA_RAIZ),
   ]);
   const msg = searchParams.google ? MENSAGENS[searchParams.google] : null;
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "";
+  const url = appUrl();
 
   return (
     <>
@@ -90,7 +91,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: { 
                     Crie um <b>ID do cliente OAuth</b> do tipo &quot;Aplicativo da Web&quot;.
                   </li>
                   <li>
-                    URI de redirecionamento: <code className="rounded bg-ink-800 px-1.5 py-0.5 text-xs text-ink-100">{appUrl || "{APP_URL}"}/api/google/callback</code>
+                    URI de redirecionamento: <code className="rounded bg-ink-800 px-1.5 py-0.5 text-xs text-ink-100">{url || "{APP_URL}"}/api/google/callback</code>
                   </li>
                   <li>
                     Coloque <code className="text-xs">GOOGLE_CLIENT_ID</code> e <code className="text-xs">GOOGLE_CLIENT_SECRET</code> nas variáveis do servidor e reinicie.

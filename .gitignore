@@ -5,3 +5,4 @@ node_modules
 storage/
 *.tsbuildinfo
 .pgdata/
+ACESSO-TESTE.txt

@@ -1,5 +1,8 @@
 import clsx, { type ClassValue } from "clsx";
 
+// URL pública do sistema. No Render, cai para a URL que a própria plataforma informa.
+export const appUrl = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+
 export function cn(...classes: ClassValue[]) {
   return clsx(classes);
 }

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { usuarioAtual } from "@/lib/auth";
 import { pastaRaiz, trocarCodigo } from "@/lib/storage/google";
+import { appUrl } from "@/lib/utils";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const base = process.env.APP_URL || req.url;
+  const base = appUrl() || req.url;
   const voltar = (q: string) => NextResponse.redirect(new URL(`/configuracoes?google=${q}`, base));
 
   const u = await usuarioAtual();
