@@ -6,9 +6,11 @@ export const DURACAO_SESSAO_S = 60 * 60 * 12; // 12 horas
 
 export type PayloadSessao = { uid: string; v: number };
 
-function segredo() {
-  const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) throw new Error("SESSION_SECRET ausente ou curto (mínimo 32 caracteres).");
+// Sem SESSION_SECRET, usa a própria DATABASE_URL (também secreta) como chave HMAC.
+// Efeito colateral: trocar a senha do banco encerra as sessões abertas.
+export function segredo() {
+  const s = process.env.SESSION_SECRET || (process.env.DATABASE_URL ? `ntech-sessao|${process.env.DATABASE_URL}` : "");
+  if (s.length < 32) throw new Error("SESSION_SECRET ausente ou curto (mínimo 32 caracteres).");
   return new TextEncoder().encode(s);
 }
 

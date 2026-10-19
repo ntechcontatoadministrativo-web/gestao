@@ -1,8 +1,8 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
+import { segredo } from "./session-token";
 
 // Tokens curtos e assinados para operações em duas etapas (upload, visualização).
-const segredo = () => new TextEncoder().encode(process.env.SESSION_SECRET!);
 
 export async function emitirTicket<T extends Record<string, unknown>>(tipo: string, dados: T, validade: string) {
   return new SignJWT({ ...dados, tipo }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime(validade).sign(segredo());
