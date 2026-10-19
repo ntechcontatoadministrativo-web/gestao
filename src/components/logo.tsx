@@ -13,7 +13,7 @@ export function Logo({ subtitulo = true }: { subtitulo?: boolean }) {
       <LogoMarca />
       <div className="leading-tight">
         <div className="text-lg font-extrabold tracking-[0.08em] text-white">NTECH</div>
-        {subtitulo && <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-400">Gestão de Projetos</div>}
+        {subtitulo && <div className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.12em] text-ink-400">Gestão de Projetos</div>}
       </div>
     </div>
   );

@@ -114,7 +114,7 @@ export default async function Agenda({ searchParams }: { searchParams: { mes?: s
     <>
       <Cabecalho
         eyebrow="Agenda"
-        titulo={<span className="capitalize">{`${MESES[mes - 1]} de ${ano}`}</span>}
+        titulo={`${MESES[mes - 1][0].toUpperCase()}${MESES[mes - 1].slice(1)} de ${ano}`}
         descricao={gestor ? "Prazos de etapas, tarefas e entregas de projetos." : "Os prazos das suas etapas e tarefas."}
         acoes={
           <div className="flex items-center gap-2">
