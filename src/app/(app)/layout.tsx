@@ -2,6 +2,8 @@ import { exigirUsuario } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/shell";
 import { Presenca } from "@/components/client";
+import { AssistenteFlutuante } from "@/components/assistente";
+import { sugestoesAssistente } from "@/lib/consultas";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <Shell usuario={usuario} pendencias={pendencias} tarefasAbertas={tarefasAbertas}>
       <Presenca />
       {children}
+      <AssistenteFlutuante sugestoes={await sugestoesAssistente(usuario)} />
     </Shell>
   );
 }

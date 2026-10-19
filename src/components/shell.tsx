@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CheckSquare, FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, Sparkles, UserCog, Users, X, Files } from "lucide-react";
+import { BarChart3, Bot, CheckSquare, Clock, FolderKanban, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, Sparkles, UserCog, Users, X, Files } from "lucide-react";
 import { Logo } from "./logo";
 import { cn, iniciais } from "@/lib/utils";
 
@@ -13,6 +13,9 @@ const ITENS_GESTOR: Item[] = [
   { href: "/painel", rotulo: "Painel", icone: LayoutDashboard },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
   { href: "/tarefas", rotulo: "Tarefas", icone: CheckSquare },
+  { href: "/horas", rotulo: "Horas", icone: Clock },
+  { href: "/relatorios", rotulo: "Relatórios", icone: BarChart3 },
+  { href: "/assistente", rotulo: "Assistente IA", icone: Bot },
   { href: "/ia", rotulo: "Levantamento IA", icone: Sparkles },
   { href: "/arquivos", rotulo: "Arquivos", icone: Files },
   { href: "/equipe", rotulo: "Equipe", icone: Users },
@@ -23,6 +26,8 @@ const ITENS_GESTOR: Item[] = [
 const ITENS_COLAB: Item[] = [
   { href: "/painel", rotulo: "Minhas etapas", icone: LayoutDashboard },
   { href: "/tarefas", rotulo: "Minhas tarefas", icone: CheckSquare },
+  { href: "/horas", rotulo: "Minhas horas", icone: Clock },
+  { href: "/assistente", rotulo: "Assistente IA", icone: Bot },
   { href: "/projetos", rotulo: "Projetos", icone: FolderKanban },
   { href: "/arquivos", rotulo: "Arquivos", icone: Files },
 ];
@@ -48,7 +53,7 @@ export function Shell({
       <div className="px-5 pb-6 pt-6">
         <Logo />
       </div>
-      <div className="flex-1 space-y-1 px-3">
+      <div className="flex-1 space-y-1 overflow-y-auto px-3">
         {itens.map((i) => {
           const ativo = pathname === i.href || pathname.startsWith(i.href + "/");
           const Icone = i.icone;

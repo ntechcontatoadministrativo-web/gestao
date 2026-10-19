@@ -18,5 +18,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|api/google/callback|api/integracoes|dynamo/|_next|favicon|icon|manifest|logo).*)"],
+  matcher: ["/((?!login|api/google/callback|api/integracoes|api/c/|c/|dynamo/|_next|favicon|icon|manifest|logo).*)"],
 };

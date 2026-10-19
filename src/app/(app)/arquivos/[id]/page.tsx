@@ -14,6 +14,7 @@ import { IconeArquivo } from "@/components/tabela-arquivos";
 import { EnviarArquivo } from "@/components/upload";
 import { VisualizadorImagem, VisualizadorPdf } from "@/components/visualizador";
 import { PainelAcesso } from "./acesso";
+import { BotaoVisivelCliente } from "@/components/area-cliente";
 
 export default async function ArquivoPage({ params, searchParams }: { params: { id: string }; searchParams: { v?: string } }) {
   const u = await exigirUsuario();
@@ -223,7 +224,8 @@ export default async function ArquivoPage({ params, searchParams }: { params: { 
         </div>
 
         {gestor && (
-          <aside>
+          <aside className="space-y-4">
+            <BotaoVisivelCliente arquivoId={arquivo.id} visivel={arquivo.visivelCliente} />
             <PainelAcesso
               arquivoId={arquivo.id}
               acessoEquipe={arquivo.acessoEquipe}

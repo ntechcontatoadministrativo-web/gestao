@@ -75,6 +75,8 @@ model Usuario {
   tarefas         Tarefa[]        @relation("TarefaResponsavel")
   tarefasCriadas  Tarefa[]        @relation("TarefaCriador")
   levantamentos   Levantamento[]
+  apontamentos    Apontamento[]
+  notificacoes    Notificacao[]
 }
 
 model Projeto {
@@ -88,6 +90,8 @@ model Projeto {
   dataInicio   DateTime      @default(now())
   prazoFinal   DateTime?
   pastaDriveId String?
+  tokenCliente String?       @unique // link da área do cliente final
+  clienteAtivo Boolean       @default(false)
   criadoPorId  String?
   criadoPor    Usuario?      @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
   criadoEm     DateTime      @default(now())
@@ -98,6 +102,7 @@ model Projeto {
   tarefas      Tarefa[]
   dadosModelo  DadosModelo[]
   levantamento Levantamento?
+  apontamentos Apontamento[]
 }
 
 model Etapa {
@@ -119,9 +124,10 @@ model Etapa {
   pastaDriveId  String?
   criadoEm      DateTime    @default(now())
 
-  comentarios Comentario[]
-  arquivos    Arquivo[]
-  tarefas     Tarefa[]
+  comentarios  Comentario[]
+  arquivos     Arquivo[]
+  tarefas      Tarefa[]
+  apontamentos Apontamento[]
 
   @@index([projetoId, ordem])
   @@index([responsavelId])
@@ -151,18 +157,19 @@ model Comentario {
 }
 
 model Arquivo {
-  id           String       @id @default(cuid())
-  projetoId    String
-  projeto      Projeto      @relation(fields: [projetoId], references: [id], onDelete: Cascade)
-  etapaId      String?
-  etapa        Etapa?       @relation(fields: [etapaId], references: [id], onDelete: SetNull)
-  nome         String
-  extensao     String?
-  revisaoAtual Int          @default(0)
+  id             String       @id @default(cuid())
+  projetoId      String
+  projeto        Projeto      @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  etapaId        String?
+  etapa          Etapa?       @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  nome           String
+  extensao       String?
+  revisaoAtual   Int          @default(0)
   // Liberação padrão para quem é responsável por alguma etapa do projeto.
-  acessoEquipe NivelAcesso?
-  criadoEm     DateTime     @default(now())
-  atualizadoEm DateTime     @updatedAt
+  acessoEquipe   NivelAcesso?
+  visivelCliente Boolean      @default(false) // aparece na área do cliente final
+  criadoEm       DateTime     @default(now())
+  atualizadoEm   DateTime     @updatedAt
 
   versoes ArquivoVersao[]
   acessos AcessoArquivo[]
@@ -247,24 +254,25 @@ enum Prioridade {
 
 // Tarefa avulsa que o gestor designa a um funcionário (pode estar ligada a um projeto/etapa).
 model Tarefa {
-  id            String       @id @default(cuid())
+  id            String        @id @default(cuid())
   titulo        String
   descricao     String?
-  status        StatusTarefa @default(A_FAZER)
-  prioridade    Prioridade   @default(MEDIA)
+  status        StatusTarefa  @default(A_FAZER)
+  prioridade    Prioridade    @default(MEDIA)
   prazo         DateTime?
   responsavelId String
-  responsavel   Usuario      @relation("TarefaResponsavel", fields: [responsavelId], references: [id], onDelete: Cascade)
+  responsavel   Usuario       @relation("TarefaResponsavel", fields: [responsavelId], references: [id], onDelete: Cascade)
   criadoPorId   String?
-  criadoPor     Usuario?     @relation("TarefaCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoPor     Usuario?      @relation("TarefaCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
   projetoId     String?
-  projeto       Projeto?     @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  projeto       Projeto?      @relation(fields: [projetoId], references: [id], onDelete: Cascade)
   etapaId       String?
-  etapa         Etapa?       @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  etapa         Etapa?        @relation(fields: [etapaId], references: [id], onDelete: SetNull)
   concluidaEm   DateTime?
   avisadoEm     DateTime? // última vez que o gestor abriu a mensagem de WhatsApp
-  criadoEm      DateTime     @default(now())
-  atualizadoEm  DateTime     @updatedAt
+  apontamentos  Apontamento[]
+  criadoEm      DateTime      @default(now())
+  atualizadoEm  DateTime      @updatedAt
 
   @@index([responsavelId, status])
   @@index([projetoId])
@@ -308,4 +316,44 @@ model DadosModelo {
   recebidoEm DateTime @default(now())
 
   @@index([projetoId, recebidoEm])
+}
+
+// Apontamento de horas trabalhadas (por etapa e/ou tarefa).
+model Apontamento {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  projetoId String
+  projeto   Projeto  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  etapaId   String?
+  etapa     Etapa?   @relation(fields: [etapaId], references: [id], onDelete: SetNull)
+  tarefaId  String?
+  tarefa    Tarefa?  @relation(fields: [tarefaId], references: [id], onDelete: SetNull)
+  data      DateTime // dia trabalhado (meio-dia de Belém)
+  minutos   Int
+  descricao String?
+  criadoEm  DateTime @default(now())
+
+  @@index([usuarioId, data])
+  @@index([projetoId, data])
+}
+
+enum StatusNotificacao {
+  ENVIADA
+  ERRO
+}
+
+// Mensagens de WhatsApp enviadas automaticamente pela API.
+model Notificacao {
+  id         String            @id @default(cuid())
+  usuarioId  String
+  usuario    Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  canal      String            @default("whatsapp")
+  status     StatusNotificacao
+  mensagem   String
+  erro       String?
+  referencia String? // "tarefa:<id>" ou "etapa:<id>"
+  criadoEm   DateTime          @default(now())
+
+  @@index([usuarioId, criadoEm])
 }

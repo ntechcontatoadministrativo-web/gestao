@@ -64,3 +64,46 @@ export async function opcoesTarefa(): Promise<{ pessoas: { id: string; nome: str
   return { pessoas, projetos };
 }
 
+
+// Projetos, etapas e tarefas em que a pessoa pode apontar horas.
+export async function opcoesHoras(u: { id: string; perfil: "GESTOR" | "COLABORADOR" }) {
+  const gestor = u.perfil === "GESTOR";
+  const [projetos, tarefas] = await Promise.all([
+    db.projeto.findMany({
+      where: {
+        status: { in: ["ATIVO", "PAUSADO"] },
+        ...(gestor ? {} : { OR: [{ etapas: { some: { responsavelId: u.id } } }, { tarefas: { some: { responsavelId: u.id } } }] }),
+      },
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        etapas: { where: gestor ? {} : { responsavelId: u.id }, select: { id: true, nome: true, ordem: true }, orderBy: { ordem: "asc" } },
+      },
+      orderBy: { codigo: "desc" },
+    }),
+    db.tarefa.findMany({
+      where: { responsavelId: u.id, status: { in: ["A_FAZER", "FAZENDO"] }, projetoId: { not: null } },
+      select: { id: true, titulo: true, projetoId: true },
+      orderBy: { criadoEm: "desc" },
+    }),
+  ]);
+  return { projetos, tarefas };
+}
+
+// Perguntas de exemplo do assistente, com nomes e projetos reais do escritório.
+export async function sugestoesAssistente(u: { id: string; perfil: "GESTOR" | "COLABORADOR" }) {
+  if (u.perfil !== "GESTOR") {
+    return ["O que eu fiz hoje?", "Quais são minhas tarefas abertas?", "Quantas horas apontei essa semana?", "Tenho alguma etapa atrasada?"];
+  }
+  const [pessoa, projeto] = await Promise.all([
+    db.usuario.findFirst({ where: { ativo: true, perfil: "COLABORADOR" }, orderBy: { ultimoAcesso: { sort: "desc", nulls: "last" } }, select: { nome: true } }),
+    db.projeto.findFirst({ where: { status: "ATIVO" }, orderBy: { atualizadoEm: "desc" }, select: { codigo: true } }),
+  ]);
+  return [
+    pessoa ? `O que ${pessoa.nome.split(" ")[0]} fez hoje?` : "O que a equipe fez hoje?",
+    "O que está atrasado ou aguardando minha aprovação?",
+    "Quantas horas a equipe apontou essa semana?",
+    projeto ? `Como está o projeto ${projeto.codigo}?` : "Quais projetos estão ativos?",
+  ];
+}

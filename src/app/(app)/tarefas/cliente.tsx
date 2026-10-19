@@ -23,7 +23,7 @@ type DadosTarefa = {
   etapaId?: string | null;
 };
 
-function Campos({ opcoes, t }: { opcoes: OpcoesTarefa; t?: DadosTarefa }) {
+function Campos({ opcoes, t, apiAtiva }: { opcoes: OpcoesTarefa; t?: DadosTarefa; apiAtiva?: boolean }) {
   const [projetoId, setProjetoId] = useState(t?.projetoId ?? "");
   const etapas = opcoes.projetos.find((p) => p.id === projetoId)?.etapas ?? [];
   return (
@@ -88,11 +88,27 @@ function Campos({ opcoes, t }: { opcoes: OpcoesTarefa; t?: DadosTarefa }) {
           </select>
         </div>
       </div>
+      {apiAtiva && (
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-200">
+          <input type="checkbox" name="enviarAuto" defaultChecked className="h-4 w-4 accent-[#5CFF4F]" />
+          Enviar o aviso automaticamente pelo WhatsApp
+        </label>
+      )}
     </>
   );
 }
 
-export function NovaTarefa({ opcoes, rotulo = "Nova tarefa", padrao }: { opcoes: OpcoesTarefa; rotulo?: string; padrao?: DadosTarefa }) {
+export function NovaTarefa({
+  opcoes,
+  rotulo = "Nova tarefa",
+  padrao,
+  apiAtiva,
+}: {
+  opcoes: OpcoesTarefa;
+  rotulo?: string;
+  padrao?: DadosTarefa;
+  apiAtiva?: boolean;
+}) {
   return (
     <Modal
       titulo="Designar tarefa"
@@ -103,26 +119,35 @@ export function NovaTarefa({ opcoes, rotulo = "Nova tarefa", padrao }: { opcoes:
         </button>
       )}
     >
-      {(fechar) => <FluxoNovaTarefa opcoes={opcoes} padrao={padrao} fechar={fechar} />}
+      {(fechar) => <FluxoNovaTarefa opcoes={opcoes} padrao={padrao} fechar={fechar} apiAtiva={apiAtiva} />}
     </Modal>
   );
 }
 
 // Depois de criar, mostra a mensagem de WhatsApp pronta no mesmo modal.
-function FluxoNovaTarefa({ opcoes, padrao, fechar }: { opcoes: OpcoesTarefa; padrao?: DadosTarefa; fechar: () => void }) {
+function FluxoNovaTarefa({ opcoes, padrao, fechar, apiAtiva }: { opcoes: OpcoesTarefa; padrao?: DadosTarefa; fechar: () => void; apiAtiva?: boolean }) {
   const [criada, setCriada] = useState<Record<string, string> | null>(null);
   if (criada)
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 rounded-lg border border-neon/30 bg-neon/10 px-3 py-2 text-sm text-neon-400">
-          <CheckCircle2 className="h-4 w-4" /> Tarefa designada para {criada.nome}. Avise pelo WhatsApp:
+          <CheckCircle2 className="h-4 w-4" />
+          {criada.envio === "enviado"
+            ? `Tarefa designada e aviso enviado no WhatsApp de ${criada.nome}.`
+            : `Tarefa designada para ${criada.nome}. Avise pelo WhatsApp:`}
         </div>
-        <PainelWhatsapp
-          mensagem={criada.mensagem}
-          telefone={criada.telefone || null}
-          nome={criada.nome}
-          aoAbrir={() => void registrarAviso(criada.tarefaId)}
-        />
+        {criada.envio && criada.envio !== "enviado" && (
+          <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">Envio automático falhou: {criada.envio}</div>
+        )}
+        {criada.envio !== "enviado" && (
+          <PainelWhatsapp
+            mensagem={criada.mensagem}
+            telefone={criada.telefone || null}
+            nome={criada.nome}
+            aoAbrir={() => void registrarAviso(criada.tarefaId)}
+            envio={criada.apiAtiva ? { usuarioId: criada.usuarioId, referencia: `tarefa:${criada.tarefaId}` } : null}
+          />
+        )}
         <div className="flex justify-between border-t border-ink-700 pt-3">
           <button className="btn-fantasma btn-sm" onClick={() => setCriada(null)}>
             Criar outra
@@ -135,7 +160,7 @@ function FluxoNovaTarefa({ opcoes, padrao, fechar }: { opcoes: OpcoesTarefa; pad
     );
   return (
     <Formulario acao={criarTarefa} aoConcluir={(e) => e.dados && setCriada(e.dados)} className="space-y-4">
-      <Campos opcoes={opcoes} t={padrao} />
+      <Campos opcoes={opcoes} t={padrao} apiAtiva={apiAtiva} />
       <div className="flex justify-end">
         <BotaoEnviar pendente="Salvando...">Designar e gerar mensagem</BotaoEnviar>
       </div>
@@ -150,11 +175,12 @@ export function AcoesTarefaGestor({
 }: {
   tarefa: DadosTarefa & { id: string };
   opcoes: OpcoesTarefa;
-  whatsapp: { nome: string; telefone: string | null; mensagem: string };
+  whatsapp: { nome: string; telefone: string | null; mensagem: string; usuarioId: string; apiAtiva: boolean };
 }) {
+  const { usuarioId, apiAtiva, ...wa } = whatsapp;
   return (
     <>
-      <BotaoWhatsapp {...whatsapp} aoAbrir={() => void registrarAviso(tarefa.id)} />
+      <BotaoWhatsapp {...wa} aoAbrir={() => void registrarAviso(tarefa.id)} envio={apiAtiva ? { usuarioId, referencia: `tarefa:${tarefa.id}` } : null} />
       <Modal
         titulo="Editar tarefa"
         largura="max-w-2xl"

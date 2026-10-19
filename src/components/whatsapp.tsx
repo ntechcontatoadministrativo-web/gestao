@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, MessageCircle } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Check, CheckCircle2, Copy, Loader2, MessageCircle, Send } from "lucide-react";
+import { enviarMensagemWhatsapp } from "@/actions/notificacoes";
 import { Modal } from "./client";
 import { cn } from "@/lib/utils";
 
@@ -17,14 +18,19 @@ export function PainelWhatsapp({
   telefone,
   nome,
   aoAbrir,
+  envio,
 }: {
   mensagem: string;
   telefone: string | null;
   nome: string;
   aoAbrir?: () => void;
+  // Presente quando a API de WhatsApp está configurada: permite enviar sem sair do sistema.
+  envio?: { usuarioId: string; referencia?: string } | null;
 }) {
   const [texto, setTexto] = useState(mensagem);
   const [copiado, setCopiado] = useState(false);
+  const [enviando, iniciar] = useTransition();
+  const [resultado, setResultado] = useState<{ ok: boolean; erro?: string } | null>(null);
   return (
     <div className="space-y-3">
       {!telefone && (
@@ -33,7 +39,28 @@ export function PainelWhatsapp({
         </div>
       )}
       <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={12} className="input font-mono text-[13px] leading-relaxed" />
+      {resultado && (
+        <div className={resultado.ok ? "rounded-lg border border-neon/30 bg-neon/10 px-3 py-2 text-sm text-neon-400" : "rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"}>
+          {resultado.ok ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4" /> Mensagem enviada para {nome}.
+            </span>
+          ) : (
+            `Não foi enviada: ${resultado.erro}`
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap justify-end gap-2">
+        {envio && telefone && (
+          <button
+            type="button"
+            className="btn-primario"
+            disabled={enviando || resultado?.ok}
+            onClick={() => iniciar(async () => setResultado(await enviarMensagemWhatsapp(envio.usuarioId, texto, envio.referencia)))}
+          >
+            {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar pelo sistema
+          </button>
+        )}
         <button
           type="button"
           className="btn-secundario"
@@ -67,6 +94,7 @@ export function BotaoWhatsapp({
   rotulo = "WhatsApp",
   aoAbrir,
   className,
+  envio,
 }: {
   mensagem: string;
   telefone: string | null;
@@ -74,6 +102,7 @@ export function BotaoWhatsapp({
   rotulo?: string;
   aoAbrir?: () => void;
   className?: string;
+  envio?: { usuarioId: string; referencia?: string } | null;
 }) {
   return (
     <Modal
@@ -84,7 +113,7 @@ export function BotaoWhatsapp({
         </button>
       )}
     >
-      {() => <PainelWhatsapp mensagem={mensagem} telefone={telefone} nome={nome} aoAbrir={aoAbrir} />}
+      {() => <PainelWhatsapp mensagem={mensagem} telefone={telefone} nome={nome} aoAbrir={aoAbrir} envio={envio} />}
     </Modal>
   );
 }

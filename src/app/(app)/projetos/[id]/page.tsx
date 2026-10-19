@@ -12,6 +12,9 @@ import { TabelaArquivos } from "@/components/tabela-arquivos";
 import { EnviarArquivo } from "@/components/upload";
 import { AcoesEtapa, AcoesProjeto, CartaoDrive, NovaEtapa } from "./acoes";
 import { DadosModelo } from "@/components/dados-modelo";
+import { CartaoAreaCliente } from "@/components/area-cliente";
+import { urlBase } from "@/lib/auth";
+import { fmtMinutos } from "@/lib/utils";
 
 export default async function ProjetoPage({ params }: { params: { id: string } }) {
   const u = await exigirUsuario();
@@ -40,11 +43,12 @@ export default async function ProjetoPage({ params }: { params: { id: string } }
   });
   if (!projeto) notFound();
 
-  const [pessoas, modo, ultimoModelo, envios] = await Promise.all([
+  const [pessoas, modo, ultimoModelo, envios, horasProjeto] = await Promise.all([
     gestor ? db.usuario.findMany({ where: { ativo: true }, select: { id: true, nome: true }, orderBy: { nome: "asc" } }) : Promise.resolve([]),
     modoArmazenamento(),
     db.dadosModelo.findFirst({ where: { projetoId: params.id }, orderBy: { recebidoEm: "desc" } }),
     db.dadosModelo.count({ where: { projetoId: params.id } }),
+    db.apontamento.aggregate({ where: { projetoId: params.id }, _sum: { minutos: true } }),
   ]);
 
   const minhasEtapas = new Set(projeto.etapas.filter((e) => e.responsavelId === u.id).map((e) => e.id));
@@ -209,6 +213,25 @@ export default async function ProjetoPage({ params }: { params: { id: string } }
         </section>
 
         <div className="space-y-6">
+          {gestor && (
+            <section className="card p-5">
+              <div className="text-xs font-bold uppercase tracking-wider text-ink-400">Horas apontadas</div>
+              <div className="mt-1 text-2xl font-bold text-white">{fmtMinutos(horasProjeto._sum.minutos ?? 0)}</div>
+              <a href={`/horas?periodo=90`} className="text-xs text-ink-400 hover:text-neon">
+                Ver apontamentos
+              </a>
+            </section>
+          )}
+          {gestor && (
+            <CartaoAreaCliente
+              projetoId={projeto.id}
+              ativo={projeto.clienteAtivo}
+              link={projeto.tokenCliente ? `${urlBase()}/c/${projeto.tokenCliente}` : null}
+              nomeProjeto={projeto.nome}
+              cliente={projeto.cliente}
+              arquivosVisiveis={projeto.arquivos.filter((a) => a.visivelCliente).length}
+            />
+          )}
           {gestor && <CartaoDrive projetoId={projeto.id} pastaId={projeto.pastaDriveId} modo={modo} />}
         </div>
       </div>

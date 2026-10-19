@@ -7,6 +7,8 @@ import { Aviso, Badge, Cabecalho } from "@/components/ui";
 import { BotaoDesconectar, CartaoDynamo, FormPastaRaiz, ListaModelos } from "./cliente";
 import { urlBase } from "@/lib/auth";
 import { CFG_DYNAMO } from "@/lib/integracoes";
+import { whatsappApiAtiva } from "@/lib/whatsapp-api";
+import { fmtDataHora } from "@/lib/utils";
 
 export const metadata = { title: "Configurações" };
 
@@ -20,12 +22,13 @@ const MENSAGENS: Record<string, { tom: "ok" | "erro" | "alerta"; texto: string }
 
 export default async function Configuracoes({ searchParams }: { searchParams: { google?: string } }) {
   await exigirGestor();
-  const [modelos, conectado, conta, raiz, tokenDynamo] = await Promise.all([
+  const [modelos, conectado, conta, raiz, tokenDynamo, notificacoes] = await Promise.all([
     db.modeloEtapa.findMany({ orderBy: { ordem: "asc" } }),
     google.driveConectado(),
     google.lerConfig(google.CFG_CONTA),
     google.lerConfig(google.CFG_PASTA_RAIZ),
     google.lerConfig(CFG_DYNAMO),
+    db.notificacao.findMany({ include: { usuario: { select: { nome: true } } }, orderBy: { criadoEm: "desc" }, take: 15 }),
   ]);
   const msg = searchParams.google ? MENSAGENS[searchParams.google] : null;
   const url = appUrl();
@@ -109,6 +112,56 @@ export default async function Configuracoes({ searchParams }: { searchParams: { 
           <h2 className="font-semibold text-white">Modelos de etapas padrão</h2>
           <p className="mb-4 mt-1 text-xs text-ink-400">Usados ao criar um projeto. Os dias definem os prazos sugeridos em sequência.</p>
           <ListaModelos modelos={modelos} />
+        </section>
+
+        <section className="card p-6 xl:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-white">WhatsApp automático (API)</h2>
+              <p className="mt-1 max-w-3xl text-xs text-ink-400">
+                Com a API ligada, o sistema envia os avisos de tarefa e de etapa direto para o WhatsApp de cada pessoa (botão &quot;Enviar pelo sistema&quot;
+                e opção de envio automático ao criar tarefa). Sem ela, tudo continua funcionando pelos links do WhatsApp.
+              </p>
+            </div>
+            {whatsappApiAtiva() ? <Badge tom="verde">Ativa</Badge> : <Badge>Desligada</Badge>}
+          </div>
+          {!whatsappApiAtiva() && (
+            <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-sm text-ink-300">
+              <li>
+                Crie uma instância em <b>z-api.io</b> e conecte o WhatsApp do escritório lendo o QR Code.
+              </li>
+              <li>
+                No servidor (Render → Environment), defina <code className="text-xs">ZAPI_INSTANCE_ID</code>, <code className="text-xs">ZAPI_TOKEN</code> e, se a
+                conta exigir, <code className="text-xs">ZAPI_CLIENT_TOKEN</code>. Depois faça um novo deploy.
+              </li>
+            </ol>
+          )}
+          {notificacoes.length > 0 && (
+            <div className="mt-5 overflow-x-auto">
+              <table className="tabela">
+                <thead>
+                  <tr>
+                    <th>Quando</th>
+                    <th>Para</th>
+                    <th>Status</th>
+                    <th>Mensagem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {notificacoes.map((n) => (
+                    <tr key={n.id}>
+                      <td className="whitespace-nowrap text-xs text-ink-400">{fmtDataHora(n.criadoEm)}</td>
+                      <td className="text-sm">{n.usuario.nome}</td>
+                      <td>{n.status === "ENVIADA" ? <Badge tom="verde">Enviada</Badge> : <Badge tom="vermelho">Erro</Badge>}</td>
+                      <td className="max-w-[360px] truncate text-xs text-ink-400" title={n.erro ?? n.mensagem}>
+                        {n.erro ?? n.mensagem.split("\n")[0]}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="card p-6 xl:col-span-2">

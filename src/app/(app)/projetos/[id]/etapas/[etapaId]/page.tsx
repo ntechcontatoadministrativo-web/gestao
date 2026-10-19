@@ -4,8 +4,12 @@ import { ArrowLeft, CircleDot } from "lucide-react";
 import { exigirUsuario, urlBase } from "@/lib/auth";
 import { opcoesTarefa } from "@/lib/consultas";
 import { mensagemEtapa } from "@/lib/whatsapp";
+import { whatsappApiAtiva } from "@/lib/whatsapp-api";
 import { BotaoWhatsapp } from "@/components/whatsapp";
 import { NovaTarefa } from "@/app/(app)/tarefas/cliente";
+import { BotaoApontarHoras } from "@/components/apontar-horas";
+import { opcoesHoras } from "@/lib/consultas";
+import { diaBelem, fmtMinutos } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { nivelCalculado } from "@/lib/permissoes";
 import { fmtData, fmtDataHora, tempoRelativo } from "@/lib/utils";
@@ -41,6 +45,10 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
   if (!gestor && !responsavel) notFound();
 
   const opcoes = gestor ? await opcoesTarefa() : null;
+  const [opHoras, horasEtapa] = await Promise.all([
+    gestor || responsavel ? opcoesHoras(u) : Promise.resolve(null),
+    db.apontamento.aggregate({ where: { etapaId: etapa.id }, _sum: { minutos: true } }),
+  ]);
   const minhas = new Set(responsavel ? [etapa.id] : []);
   const arquivos = etapa.arquivos
     .map((a) => ({ ...a, tamanho: a.versoes[0]?.tamanho ?? 0, nivel: nivelCalculado(u, a, minhas, responsavel) }))
@@ -63,12 +71,14 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
         }
         acoes={
           <>
+            {opHoras && <BotaoApontarHoras opcoes={opHoras} hoje={diaBelem()} padrao={{ projetoId: etapa.projeto.id, etapaId: etapa.id }} />}
             {responsavel && <BotoesFluxo etapaId={etapa.id} status={etapa.status} />}
             {gestor && etapa.status === "AGUARDANDO_APROVACAO" && <BotoesAprovacao etapaId={etapa.id} />}
             {gestor && etapa.responsavel && (
               <BotaoWhatsapp
                 className="btn-sm"
                 rotulo="Avisar no WhatsApp"
+                envio={whatsappApiAtiva() ? { usuarioId: etapa.responsavel.id, referencia: `etapa:${etapa.id}` } : null}
                 nome={etapa.responsavel.nome}
                 telefone={etapa.responsavel.telefone}
                 mensagem={mensagemEtapa({
@@ -163,6 +173,7 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
                 </dd>
               </div>
               <Linha rotulo="Prazo" valor={fmtData(etapa.prazo)} />
+              <Linha rotulo="Horas apontadas" valor={fmtMinutos(horasEtapa._sum.minutos ?? 0)} />
               <Linha rotulo="Iniciada em" valor={fmtDataHora(etapa.iniciadaEm)} />
               <Linha rotulo="Enviada para aprovação" valor={fmtDataHora(etapa.enviadaEm)} />
               <Linha
@@ -199,6 +210,7 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
                 <NovaTarefa
                   opcoes={opcoes}
                   rotulo="Tarefa nesta etapa"
+                  apiAtiva={whatsappApiAtiva()}
                   padrao={{ projetoId: etapa.projeto.id, etapaId: etapa.id, responsavelId: etapa.responsavelId ?? undefined }}
                 />
               </div>

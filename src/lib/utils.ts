@@ -74,3 +74,32 @@ export function dataParaInput(d: Date | string | null | undefined) {
   if (!d) return "";
   return new Date(new Date(d).getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);
 }
+
+// "YYYY-MM-DD" do dia em Belém (UTC-3)
+export function diaBelem(d: Date | string = new Date()) {
+  return new Date(new Date(d).getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+// [início, fim) de um dia de Belém, a partir de "YYYY-MM-DD"
+export function intervaloDia(ymd: string): [Date, Date] {
+  const ini = new Date(`${ymd}T03:00:00.000Z`);
+  return [ini, new Date(ini.getTime() + 86400000)];
+}
+
+// "1:30", "1h30", "1,5" ou "90min" -> minutos
+export function parseHoras(v: FormDataEntryValue | null): number | null {
+  const s = String(v ?? "").trim().toLowerCase().replace(/\s/g, "");
+  if (!s) return null;
+  let m = s.match(/^(\d{1,2})[:h](\d{1,2})?m?(in)?$/);
+  if (m) return Number(m[1]) * 60 + Number(m[2] ?? 0);
+  m = s.match(/^(\d{1,4})min$/);
+  if (m) return Number(m[1]);
+  const n = Number(s.replace(",", ".").replace(/h$/, ""));
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 60) : null;
+}
+
+export const fmtMinutos = (min: number) => {
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
+};

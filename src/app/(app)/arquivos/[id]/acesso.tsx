@@ -26,7 +26,7 @@ export function PainelAcesso({
   pessoas: Pessoa[];
 }) {
   return (
-    <section className="card sticky top-4">
+    <section className="card">
       <div className="border-b border-ink-700 px-5 py-4">
         <h2 className="font-semibold text-white">Controle de acesso</h2>
         <p className="mt-0.5 text-xs text-ink-400">Mudanças valem na hora, inclusive para quem está com o arquivo aberto.</p>

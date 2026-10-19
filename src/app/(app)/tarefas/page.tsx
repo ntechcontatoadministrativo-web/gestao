@@ -7,6 +7,7 @@ import { mensagemTarefa } from "@/lib/whatsapp";
 import { cn, dataParaInput, fmtData, tempoRelativo } from "@/lib/utils";
 import { Avatar, Badge, Cabecalho, PrazoBadge, Vazio } from "@/components/ui";
 import { opcoesTarefa } from "@/lib/consultas";
+import { whatsappApiAtiva } from "@/lib/whatsapp-api";
 import { AcoesTarefaGestor, NovaTarefa, StatusTarefaControle } from "./cliente";
 
 export const metadata = { title: "Tarefas" };
@@ -62,7 +63,7 @@ export default async function Tarefas({ searchParams }: { searchParams: { status
         eyebrow="Tarefas"
         titulo={gestor ? "Tarefas da equipe" : "Minhas tarefas"}
         descricao={gestor ? "Designe tarefas e avise o funcionário pelo WhatsApp com a mensagem pronta." : "Tarefas que o gestor designou para você."}
-        acoes={gestor && opcoes && <NovaTarefa opcoes={opcoes} />}
+        acoes={gestor && opcoes && <NovaTarefa opcoes={opcoes} apiAtiva={whatsappApiAtiva()} />}
       />
 
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -162,6 +163,8 @@ export default async function Tarefas({ searchParams }: { searchParams: { status
                         whatsapp={{
                           nome: t.responsavel.nome,
                           telefone: t.responsavel.telefone,
+                          usuarioId: t.responsavelId,
+                          apiAtiva: whatsappApiAtiva(),
                           mensagem: mensagemTarefa({ ...t, url: `${base}/tarefas?t=${t.id}` }),
                         }}
                       />

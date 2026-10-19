@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { exigirGestor, exigirUsuario, urlBase } from "@/lib/auth";
 import { parseDataInput } from "@/lib/utils";
 import { mensagemTarefa } from "@/lib/whatsapp";
+import { enviarWhatsapp, whatsappApiAtiva } from "@/lib/whatsapp-api";
 import type { EstadoForm } from "@/components/client";
 
 const PRIORIDADES: Prioridade[] = ["BAIXA", "MEDIA", "ALTA", "URGENTE"];
@@ -64,14 +65,25 @@ export async function criarTarefa(_: EstadoForm, fd: FormData): Promise<EstadoFo
       etapa: { select: { nome: true } },
     },
   });
+  const mensagem = mensagemTarefa({ ...t, url: `${urlBase()}/tarefas?t=${t.id}` });
+  // Envio automático pela API, se o gestor marcou a opção.
+  let envio = "";
+  if (fd.get("enviarAuto") === "on" && whatsappApiAtiva()) {
+    const r = await enviarWhatsapp({ usuarioId: t.responsavelId, telefone: t.responsavel.telefone, mensagem, referencia: `tarefa:${t.id}` });
+    envio = r.ok ? "enviado" : r.erro;
+    if (r.ok) await db.tarefa.update({ where: { id: t.id }, data: { avisadoEm: new Date() } });
+  }
   revalidar(t.projetoId);
   return {
     ok: `Tarefa designada para ${t.responsavel.nome}.`,
     dados: {
       tarefaId: t.id,
+      usuarioId: t.responsavelId,
       nome: t.responsavel.nome,
       telefone: t.responsavel.telefone ?? "",
-      mensagem: mensagemTarefa({ ...t, url: `${urlBase()}/tarefas?t=${t.id}` }),
+      mensagem,
+      envio,
+      apiAtiva: whatsappApiAtiva() ? "1" : "",
     },
   };
 }

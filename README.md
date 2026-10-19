@@ -1,7 +1,7 @@
 # NTECH · Gestão de Projetos
 
 Sistema web para organizar projetos elétricos, equipe e arquivos do Google Drive, com controle de acesso.
-Implementa a **Fase 1 (MVP)** e a **Fase 2 (IA e Dynamo)** da proposta comercial, além das tarefas com aviso por WhatsApp.
+Implementa as **Fases 1, 2 e 3** da proposta comercial, mais tarefas com aviso por WhatsApp e um assistente de IA.
 
 | Módulo | O que tem |
 | --- | --- |
@@ -14,6 +14,12 @@ Implementa a **Fase 1 (MVP)** e a **Fase 2 (IA e Dynamo)** da proposta comercial
 | **Tarefas + WhatsApp** | O gestor designa tarefas avulsas (com prioridade, prazo, projeto/etapa) e gera a mensagem pronta para o WhatsApp do funcionário (link `wa.me`, texto editável). Também há aviso de etapa designada. O funcionário acompanha e conclui as tarefas dele. |
 | **Levantamento com IA** (Fase 2) | O gestor envia memorial, plantas (PDF) e fotos; o Claude (`claude-opus-5-5`) lê tudo e devolve resumo, dados técnicos identificados, escopo, entregáveis, etapas com prazos calibrados pelo histórico real do escritório, riscos, perguntas para o cliente e documentos faltantes. Um clique cria o projeto com as etapas. |
 | **Integração com Dynamo** (Fase 2) | Script Python (`public/dynamo/enviar_ntech.py`) que lê do Revit os quadros, circuitos e quantitativos e envia para o projeto. O sistema mostra o quadro de cargas, a potência por fase e o desequilíbrio. |
+
+| **Assistente IA** | Chat em todas as telas (botão "Perguntar à IA"). Responde com os dados reais do sistema: "o que o Yuri fez hoje?", "o que está atrasado?", "quantas horas a equipe apontou essa semana?", "como está o P2026-014?". Colaboradores só consultam os próprios dados. |
+| **Horas** (Fase 3) | Apontamento por projeto, etapa ou tarefa (`1:30`, `2h`, `1,5`), totais por dia, projeto e pessoa. |
+| **Relatórios** (Fase 3) | Produtividade por pessoa e por projeto no período: horas, etapas e tarefas concluídas, % no prazo, atrasos e arquivos enviados. Exporta CSV. |
+| **Área do cliente** (Fase 3) | Link público por projeto (sem login) com andamento, etapas, prazos e só os arquivos marcados "visível para o cliente". Acessos do cliente ficam na auditoria. |
+| **WhatsApp automático** (Fase 3) | Com a Z-API configurada, os avisos são enviados pelo próprio sistema (botão "Enviar pelo sistema" e envio automático ao criar tarefa). Histórico em Configurações. |
 
 ## Como o controle de acesso funciona
 
@@ -63,6 +69,11 @@ O token do Google fica criptografado no banco (AES-256-GCM com `ENCRYPTION_KEY`)
 A análise usa structured outputs (o JSON sempre segue o schema) e o *fallback* do servidor (`fallbacks: "default"`), que tenta outro modelo se a resposta for recusada.
 O custo é por uso e depende do volume de documentos. Limite por envio: 22 MB e 20 arquivos; DWG/RVT precisam ser exportados para PDF.
 
+## WhatsApp automático (Z-API)
+
+Crie uma instância em [z-api.io](https://z-api.io), conecte o WhatsApp do escritório pelo QR Code e defina
+`ZAPI_INSTANCE_ID`, `ZAPI_TOKEN` e (se a conta exigir) `ZAPI_CLIENT_TOKEN` no servidor. Sem elas, o sistema usa links `wa.me`.
+
 ## Dynamo
 
 Em **Configurações → Integração com Dynamo**, gere o token e baixe o script. No Dynamo (Revit 2022+, CPython3), cole o script num nó
@@ -88,6 +99,8 @@ src/app/api/arquivos/       upload em 2 etapas e entrega de conteúdo com audito
 src/app/(app)/              telas: painel, projetos, etapas, arquivos, equipe, auditoria, configurações
 ```
 
-## Próxima fase (proposta)
+## Status das fases
 
-- **Fase 3:** relatórios de produtividade, apontamento de horas, notificações por WhatsApp e área do cliente final.
+- **Fase 1 · MVP:** concluída.
+- **Fase 2 · IA e Dynamo:** concluída.
+- **Fase 3 · Extras:** concluída (horas, relatórios, WhatsApp automático, área do cliente).
