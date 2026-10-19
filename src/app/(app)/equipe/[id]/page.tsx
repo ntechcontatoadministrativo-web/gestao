@@ -7,6 +7,7 @@ import { etapaAtrasada, ROTULO_ACAO } from "@/lib/consultas";
 import { estaOnline, fmtData, fmtDataHora, fmtRevisao, tempoRelativo } from "@/lib/utils";
 import { Avatar, Badge, Cabecalho, Kpi, PrazoBadge, StatusEtapaBadge, Vazio } from "@/components/ui";
 import { BotaoAtivo, EditarUsuario } from "../cliente";
+import { FormMissaoEModelo } from "./missao";
 import { formatarTelefone } from "@/lib/whatsapp";
 
 export default async function Pessoa({ params }: { params: { id: string } }) {
@@ -61,6 +62,10 @@ export default async function Pessoa({ params }: { params: { id: string } }) {
         <Kpi rotulo="Concluídas (30 dias)" valor={p.etapas.filter((e) => e.concluidaEm && e.concluidaEm > trintaDias).length} />
         <Kpi rotulo="Downloads (30 dias)" valor={logs.filter((l) => l.acao === "BAIXOU" && l.criadoEm > trintaDias).length} />
       </div>
+
+      <section className="card mt-6 p-5 sm:p-6">
+        <FormMissaoEModelo id={p.id} nome={p.nome} gestor={eu.nome} missao={p.missao} modelo={p.modeloWhatsapp} />
+      </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <section className="card">

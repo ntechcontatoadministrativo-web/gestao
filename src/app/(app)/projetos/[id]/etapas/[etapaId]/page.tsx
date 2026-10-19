@@ -21,7 +21,7 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
     where: { id: params.etapaId },
     include: {
       projeto: { select: { id: true, codigo: true, nome: true, cliente: true } },
-      responsavel: { select: { id: true, nome: true, cargo: true, telefone: true, ultimoAcesso: true } },
+      responsavel: { select: { id: true, nome: true, cargo: true, telefone: true, ultimoAcesso: true, missao: true, modeloWhatsapp: true } },
       tarefas: { where: { status: { in: ["A_FAZER", "FAZENDO"] } }, include: { responsavel: { select: { nome: true } } }, orderBy: { prazo: "asc" } },
       aprovadaPor: { select: { nome: true } },
       comentarios: { include: { autor: { select: { nome: true } } }, orderBy: { criadoEm: "asc" } },
@@ -74,6 +74,7 @@ export default async function EtapaPage({ params }: { params: { id: string; etap
                 mensagem={mensagemEtapa({
                   ...etapa,
                   responsavel: etapa.responsavel,
+                  gestor: u,
                   url: `${urlBase()}/projetos/${etapa.projeto.id}/etapas/${etapa.id}`,
                 })}
               />

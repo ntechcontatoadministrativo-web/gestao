@@ -49,18 +49,20 @@ enum AcaoLog {
 }
 
 model Usuario {
-  id           String    @id @default(cuid())
-  nome         String
-  email        String    @unique
-  senhaHash    String
-  perfil       Perfil    @default(COLABORADOR)
-  cargo        String?
-  telefone     String? // WhatsApp, só dígitos com DDD (ex.: 91988887777)
-  ativo        Boolean   @default(true)
-  ultimoAcesso DateTime?
+  id             String    @id @default(cuid())
+  nome           String
+  email          String    @unique
+  senhaHash      String
+  perfil         Perfil    @default(COLABORADOR)
+  cargo          String?
+  telefone       String? // WhatsApp, só dígitos com DDD (ex.: 91988887777)
+  missao         String? // missão/função e responsabilidades, escrita pelo gestor
+  modeloWhatsapp String? // modelo próprio da mensagem de aviso ({primeiro_nome}, {assunto}, {link}...)
+  ativo          Boolean   @default(true)
+  ultimoAcesso   DateTime?
   // Incrementado ao desativar/trocar senha: invalida sessões abertas na hora.
-  versaoSessao Int       @default(0)
-  criadoEm     DateTime  @default(now())
+  versaoSessao   Int       @default(0)
+  criadoEm       DateTime  @default(now())
 
   etapas          Etapa[]         @relation("Responsavel")
   aprovacoes      Etapa[]         @relation("Aprovador")

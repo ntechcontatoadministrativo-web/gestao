@@ -283,6 +283,7 @@ async function PainelColaborador({ u }: { u: UsuarioSessao }) {
     }),
   ]);
 
+  const missao = (await db.usuario.findUnique({ where: { id: u.id }, select: { missao: true } }))?.missao;
   const abertas = etapas.filter((e) => e.status === "PENDENTE" || e.status === "EM_ANDAMENTO");
   const aguardando = etapas.filter((e) => e.status === "AGUARDANDO_APROVACAO");
   const concluidas = etapas.filter((e) => e.status === "CONCLUIDA");
@@ -291,6 +292,13 @@ async function PainelColaborador({ u }: { u: UsuarioSessao }) {
   return (
     <>
       <Cabecalho eyebrow="Minhas etapas" titulo={`Olá, ${u.nome.split(" ")[0]}`} descricao="Aqui estão as etapas sob sua responsabilidade." />
+
+      {missao && (
+        <section className="card mb-6 border-neon/25 bg-neon/[0.03] p-5">
+          <div className="eyebrow mb-2">Sua missão</div>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-100">{missao}</p>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi rotulo="Para fazer" valor={abertas.length} destaque={abertas.length > 0} />

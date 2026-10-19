@@ -102,3 +102,18 @@ export async function trocarMinhaSenha(_: EstadoForm, fd: FormData): Promise<Est
   await iniciarSessao(atualizado); // mantém esta sessão, encerra as outras
   return { ok: "Senha alterada. Outras sessões abertas foram encerradas." };
 }
+
+// Missão do colaborador e o modelo próprio da mensagem de WhatsApp dele.
+export async function salvarMissaoEModelo(id: string, _: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  await exigirGestor();
+  const missao = String(fd.get("missao") ?? "").trim().slice(0, 4000) || null;
+  const modelo = String(fd.get("modeloWhatsapp") ?? "").trim().slice(0, 4000) || null;
+  if (modelo && !modelo.includes("{")) {
+    return { erro: "O modelo precisa de ao menos um campo, como {primeiro_nome} ou {assunto}. Deixe vazio para usar o padrão." };
+  }
+  await db.usuario.update({ where: { id }, data: { missao, modeloWhatsapp: modelo } });
+  revalidatePath(`/equipe/${id}`);
+  revalidatePath("/painel");
+  revalidatePath("/conta");
+  return { ok: "Missão e mensagem salvas." };
+}

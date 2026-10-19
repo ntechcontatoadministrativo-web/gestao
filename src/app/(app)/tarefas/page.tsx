@@ -35,9 +35,9 @@ export default async function Tarefas({ searchParams }: { searchParams: { status
     db.tarefa.findMany({
       where,
       include: {
-        responsavel: { select: { id: true, nome: true, telefone: true, ultimoAcesso: true } },
+        responsavel: { select: { id: true, nome: true, telefone: true, ultimoAcesso: true, missao: true, modeloWhatsapp: true } },
         criadoPor: { select: { nome: true } },
-        projeto: { select: { id: true, codigo: true, nome: true } },
+        projeto: { select: { id: true, codigo: true, nome: true, cliente: true } },
         etapa: { select: { id: true, nome: true } },
       },
       orderBy: [{ status: "asc" }, { prazo: { sort: "asc", nulls: "last" } }, { criadoEm: "desc" }],

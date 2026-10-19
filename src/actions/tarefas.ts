@@ -58,9 +58,9 @@ export async function criarTarefa(_: EstadoForm, fd: FormData): Promise<EstadoFo
   const t = await db.tarefa.create({
     data: { ...r.dados, criadoPorId: gestor.id },
     include: {
-      responsavel: { select: { nome: true, telefone: true } },
+      responsavel: { select: { nome: true, telefone: true, missao: true, modeloWhatsapp: true } },
       criadoPor: { select: { nome: true } },
-      projeto: { select: { codigo: true, nome: true } },
+      projeto: { select: { codigo: true, nome: true, cliente: true } },
       etapa: { select: { nome: true } },
     },
   });
